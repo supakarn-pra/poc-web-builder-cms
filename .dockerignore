@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+*.db
+*.db-journal
+.env
+.env.*
+!.env.example
+npm-debug.log*
+README.md
+PLAN.md
+DEPLOY.md
+.vercel
+.claude
+src/generated

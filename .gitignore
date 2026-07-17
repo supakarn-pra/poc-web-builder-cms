@@ -32,6 +32,15 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# sqlite (POC database)
+*.db
+*.db-journal
+
+# uploaded media (runtime) — เก็บโฟลเดอร์ไว้ ไม่เก็บไฟล์ที่อัปโหลด
+/public/uploads/*
+!/public/uploads/.gitkeep
 
 # vercel
 .vercel
@@ -39,3 +48,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma

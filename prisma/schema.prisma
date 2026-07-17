@@ -1,0 +1,124 @@
+// Prisma 7 — SQLite (POC). Postgres ใน production: เปลี่ยน provider + migrate ใหม่
+// หมายเหตุ: SQLite ไม่รองรับ enum → ใช้ String + validate ด้วย Zod ที่ boundary
+// role:       "OWNER" | "ADMIN"
+// siteType:   "LANDING" | "COMPANY" | "BLOG"
+// status:     "DRAFT" | "PUBLISHED"
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  passwordHash String
+  role         String     @default("OWNER")
+  websites     Website[]
+  posts        BlogPost[]
+  createdAt    DateTime   @default(now())
+}
+
+model Website {
+  id           String       @id @default(cuid())
+  name         String
+  subdomain    String       @unique
+  customDomain String?      @unique
+  ownerId      String
+  owner        User         @relation(fields: [ownerId], references: [id])
+  // เว็บหลัก parentId = null; โดเมนย่อยชี้กลับหาเว็บหลัก
+  parentId     String?
+  parent       Website?     @relation("SiteTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Website[]    @relation("SiteTree")
+  globalStyle  String // JSON: GlobalStyle
+  headerRow    String? // JSON: RowInstance — ส่วนหัวใช้ร่วมทุกหน้า (null = default)
+  footerRow    String? // JSON: RowInstance — ส่วนท้ายใช้ร่วมทุกหน้า
+  siteType     String
+  status       String       @default("DRAFT")
+  // เวอร์ชันที่ถูกเลือกเสิร์ฟที่ root "/" (มีได้ทีละอัน — บังคับใน action)
+  isPublic     Boolean      @default(false)
+  pages        Page[]
+  posts        BlogPost[]
+  categories   Category[]
+  media        MediaAsset[]
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  publishedAt  DateTime?
+}
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  websiteId String
+  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  url       String
+  filename  String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  websiteId String
+  website   Website    @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  name      String
+  slug      String
+  posts     BlogPost[]
+
+  @@unique([websiteId, slug])
+}
+
+model BlogPost {
+  id             String    @id @default(cuid())
+  websiteId      String
+  website        Website   @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  title          String
+  slug           String
+  excerpt        String?
+  coverImageUrl  String?
+  content        String // JSON: Tiptap document
+  tagsCsv        String    @default("") // POC: แท็กคั่น comma — แยกตารางเมื่อต้อง filter จริง
+  authorId       String
+  author         User      @relation(fields: [authorId], references: [id])
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id])
+  seoTitle       String?
+  seoDescription String?
+  status         String    @default("DRAFT")
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([websiteId, slug])
+}
+
+model Page {
+  id             String        @id @default(cuid())
+  websiteId      String
+  website        Website       @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  name           String
+  slug           String // "home" สำหรับหน้าแรก
+  isHome         Boolean       @default(false)
+  sections       String // JSON: SectionInstance[]
+  seoTitle       String?
+  seoDescription String?
+  status         String        @default("DRAFT")
+  versions       PageVersion[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([websiteId, slug])
+}
+
+model PageVersion {
+  id        String   @id @default(cuid())
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  snapshot  String // JSON: sections ณ เวลา publish
+  createdAt DateTime @default(now())
+}

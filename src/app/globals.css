@@ -1,26 +1,152 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ─────────────────────────────────────────────────────────────
+   Design tokens — reflects the MVP Global Style (สีหลัก/สีรอง/
+   Font/รูปแบบปุ่ม/ความโค้ง). ผู้ใช้จะปรับผ่าน Global Style panel
+   เพื่อ override ค่าเหล่านี้ที่ระดับ website ในภายหลัง
+   ───────────────────────────────────────────────────────────── */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  /* Neutral surface */
+  --surface: #ffffff;
+  --surface-muted: #f5f5f5;
+  --surface-hover: #ececec;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+  --text: #18181b;
+  --text-muted: #52525b;
+  --text-subtle: #71717a;
+
+  /* Brand — override per-website ในภายหลัง */
+  --brand-primary: #4f46e5;
+  --brand-primary-hover: #4338ca;
+  --brand-secondary: #0ea5e9;
+  --brand-primary-foreground: #ffffff;
+
+  /* State */
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #d97706;
+
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 10px -2px rgb(0 0 0 / 0.08);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --surface: #0a0a0a;
+    --surface-muted: #131316;
+    --surface-hover: #1c1c20;
+    --border: #27272a;
+    --border-strong: #3f3f46;
+    --text: #fafafa;
+    --text-muted: #a1a1aa;
+    --text-subtle: #71717a;
   }
 }
 
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-subtle: var(--text-subtle);
+
+  --color-brand: var(--brand-primary);
+  --color-brand-hover: var(--brand-primary-hover);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-foreground: var(--brand-primary-foreground);
+
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-heading);
+}
+
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body), "IBM Plex Sans Thai", "Sarabun",
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── เนื้อหาบทความ (Tiptap) — ใช้ทั้งใน editor และหน้าเว็บจริง ─── */
+.rich-text {
+  line-height: 1.75;
+}
+.rich-text h2 {
+  font-family: var(--font-heading), var(--font-body), sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 1.5em 0 0.5em;
+}
+.rich-text h3 {
+  font-family: var(--font-heading), var(--font-body), sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 1.25em 0 0.4em;
+}
+.rich-text p {
+  margin: 0.6em 0;
+}
+.rich-text a {
+  color: var(--brand-primary);
+  text-decoration: underline;
+}
+.rich-text ul,
+.rich-text ol {
+  padding-left: 1.5em;
+  margin: 0.6em 0;
+}
+.rich-text ul {
+  list-style: disc;
+}
+.rich-text ol {
+  list-style: decimal;
+}
+.rich-text blockquote {
+  border-left: 3px solid var(--brand-primary);
+  padding-left: 1em;
+  color: var(--text-muted);
+  margin: 1em 0;
+}
+.rich-text img {
+  border-radius: var(--radius-md);
+  max-width: 100%;
+  margin: 1em 0;
+}
+.rich-text div[data-youtube-video] {
+  margin: 1em 0;
+}
+.rich-text div[data-youtube-video] iframe,
+.rich-text iframe.rich-video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+/* Tiptap placeholder */
+.rich-text p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--text-subtle);
+  float: left;
+  height: 0;
+  pointer-events: none;
 }
