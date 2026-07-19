@@ -60,6 +60,6 @@ export async function updateGlobalStyle(
     },
   });
 
-  revalidatePath("/admin/settings");
+  revalidatePath("/administrator/settings");
   return { saved: true };
 }

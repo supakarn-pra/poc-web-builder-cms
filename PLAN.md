@@ -46,15 +46,17 @@
 ```
 /                       → เว็บไซต์จริง (เวอร์ชันที่เลือก "สาธารณะ") — visitor เห็นเว็บเลย
 /[slug], /blog/[slug]   → หน้าอื่น/บทความ ของเว็บสาธารณะ
-/admin                  → CMS (แก้เว็บที่ /) — ภาพรวม, เว็บไซต์, หน้าเว็บ, บทความ, รูปภาพ, เมนู, ตั้งค่า
-/admin/websites         → เลือกเวอร์ชันหลัก: ทำได้หลายเว็บ แล้ว "ตั้งเป็นเว็บสาธารณะ" ทีละอัน
+/{landingSlug}/...      → Landing แยก (sub-path) ใต้เว็บสาธารณะ เช่น /aaa, /aaa/blog/x
+/administrator                  → CMS (แก้เว็บที่ /) — ภาพรวม, เว็บไซต์, หน้าเว็บ, บทความ, รูปภาพ, เมนู, ตั้งค่า
+/administrator/websites         → เลือกเวอร์ชันหลัก: ทำได้หลายเว็บ แล้ว "ตั้งเป็นเว็บสาธารณะ" ทีละอัน
 /builder/[siteId]/[pageId]  → ตัวสร้างหน้า (full screen)
-/sites/[subdomain]/*    → เว็บโดเมนย่อย (blog.brand ฯลฯ)
-/login, /register       → auth
+/preview/[websiteId]/*  → ดูตัวอย่างเวอร์ชัน/landing ที่ยังไม่เผยแพร่ (auth)
+/administrator/login·register       → auth
 ```
 
 - **เว็บสาธารณะ** = `Website.isPublic` (มีได้ทีละอัน, `setPublicWebsite` ปลดอันเดิม); root resolve ผ่าน `resolvePrimarySite()` (public → เว็บหลักล่าสุด → null→ DefaultLanding)
-- render เว็บ (root + subdomain) ใช้ component ร่วม `PublicSitePage` / `PublicArticle`
+- **Landing แยก** = Website ที่ `parentId` ชี้เว็บหลัก, `subdomain` เก็บ slug ล้วน (เช่น `aaa`) เสิร์ฟที่ `/{slug}` — root catch-all เช็ค segment แรกกับ landing ของเว็บสาธารณะก่อน ไม่ใช่ subdomain จริง
+- render เว็บ (root + landing + preview) ใช้ component ร่วม `PublicSitePage` / `PublicArticle` (`resolveSitePath` แยกหน้า/บทความ)
 
 ## 3. High-Level Architecture
 

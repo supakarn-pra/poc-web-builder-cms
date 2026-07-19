@@ -24,7 +24,7 @@ function slugify(text: string) {
 
 async function ownedWebsite(userId: string, role: string) {
   return db.website.findFirst({
-    where: role === "ADMIN" ? {} : { ownerId: userId },
+    where: { parentId: null, ...(role === "ADMIN" ? {} : { ownerId: userId }) },
     orderBy: { updatedAt: "desc" },
     select: { id: true },
   });
@@ -34,7 +34,7 @@ async function ownedWebsite(userId: string, role: string) {
 export async function createPost() {
   const user = await requireUser();
   const website = await ownedWebsite(user.id, user.role);
-  if (!website) redirect("/admin/websites/new");
+  if (!website) redirect("/administrator/websites/new");
 
   const base = "บทความใหม่";
   let slug = slugify(`${base}-${Date.now().toString(36)}`);
@@ -55,7 +55,7 @@ export async function createPost() {
     select: { id: true },
   });
 
-  redirect(`/admin/posts/${post.id}`);
+  redirect(`/administrator/posts/${post.id}`);
 }
 
 const saveSchema = z.object({
@@ -172,7 +172,7 @@ export async function savePost(
     },
   });
 
-  revalidatePath("/admin/posts");
+  revalidatePath("/administrator/posts");
   return { saved: true };
 }
 
@@ -185,6 +185,6 @@ export async function deletePost(
   if (!ctx) return { error: "ไม่พบบทความ" };
 
   await db.blogPost.delete({ where: { id: postId } });
-  revalidatePath("/admin/posts");
-  redirect("/admin/posts");
+  revalidatePath("/administrator/posts");
+  redirect("/administrator/posts");
 }

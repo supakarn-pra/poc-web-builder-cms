@@ -18,7 +18,7 @@ export function DefaultLanding() {
           เว็บของคุณจะแสดงที่หน้านี้ทันที
         </p>
       </div>
-      <Link href="/admin/websites">
+      <Link href="/administrator/websites">
         <Button size="lg">ไปที่ระบบจัดการ</Button>
       </Link>
     </div>

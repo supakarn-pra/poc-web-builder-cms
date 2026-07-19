@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useActionState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
   Check,
   ChevronDown,
+  ExternalLink,
   Loader2,
   Redo2,
   Undo2,
@@ -14,6 +16,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { DevicePreviewSwitch, type DeviceMode } from "./DevicePreviewSwitch";
 import type { BuilderPageInfo } from "./BuilderShell";
+import { publishWebsite, type PublishState } from "@/server/actions/publish";
 import { t } from "@/lib/messages";
 
 export type SaveStatus = "saved" | "pending" | "saving" | "error";
@@ -31,6 +34,7 @@ const statusDisplay: Record<
 export function BuilderTopbar({
   websiteId,
   pageId,
+  pageSlug,
   websiteName,
   pages,
   device,
@@ -39,6 +43,8 @@ export function BuilderTopbar({
 }: {
   websiteId: string;
   pageId: string;
+  /** slug ของหน้าปัจจุบัน ("" = หน้าแรก) — ใช้ทำลิงก์ดูตัวอย่าง */
+  pageSlug: string;
   websiteName: string;
   pages: BuilderPageInfo[];
   device: DeviceMode;
@@ -47,12 +53,17 @@ export function BuilderTopbar({
 }) {
   const router = useRouter();
   const status = statusDisplay[saveStatus];
+  const [pubState, pubAction, publishing] = useActionState<PublishState, FormData>(
+    publishWebsite,
+    {},
+  );
+  const previewHref = `/preview/${websiteId}${pageSlug ? `/${pageSlug}` : ""}`;
 
   return (
     <div className="h-14 flex items-center justify-between border-b border-border bg-surface px-4">
       <div className="flex items-center gap-2">
         <Link
-          href="/admin/dashboard"
+          href="/administrator/dashboard"
           className="grid h-8 w-8 place-items-center rounded-md hover:bg-surface-muted text-text-muted"
           aria-label="กลับสู่ภาพรวม"
         >
@@ -128,12 +139,32 @@ export function BuilderTopbar({
         >
           <Redo2 size={16} />
         </button>
-        <Button variant="secondary" size="sm" title="มาใน Sprint 5">
-          {t.action.preview}
-        </Button>
-        <Button variant="primary" size="sm" title="มาใน Sprint 5">
-          {t.action.publish}
-        </Button>
+        {pubState.publishedAt ? (
+          <span className="hidden lg:flex items-center gap-1 text-xs text-success">
+            <Check size={12} /> เผยแพร่แล้ว
+          </span>
+        ) : pubState.error ? (
+          <span className="hidden lg:block text-xs text-danger">
+            {pubState.error}
+          </span>
+        ) : null}
+        <a href={previewHref} target="_blank" rel="noreferrer">
+          <Button variant="secondary" size="sm">
+            <ExternalLink size={13} /> {t.action.preview}
+          </Button>
+        </a>
+        <form action={pubAction}>
+          <input type="hidden" name="websiteId" value={websiteId} />
+          <Button
+            type="submit"
+            variant="primary"
+            size="sm"
+            disabled={publishing}
+            title="นำการแก้ไขทั้งหมดของเว็บนี้ขึ้นเว็บจริง"
+          >
+            {publishing ? "กำลังเผยแพร่…" : t.action.publish}
+          </Button>
+        </form>
       </div>
     </div>
   );

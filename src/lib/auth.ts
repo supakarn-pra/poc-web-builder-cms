@@ -18,6 +18,6 @@ export const getCurrentUser = cache(async () => {
 /** ใช้ในหน้า (admin)/builder — redirect ไป login ถ้าไม่มี session */
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/administrator/login");
   return user;
 }

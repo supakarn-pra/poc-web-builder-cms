@@ -17,13 +17,13 @@ import { t } from "@/lib/messages";
 import { logout } from "@/server/actions/auth";
 
 const items = [
-  { href: "/admin/dashboard", label: t.nav.dashboard, Icon: LayoutDashboard },
-  { href: "/admin/websites", label: t.nav.websites, Icon: Globe },
-  { href: "/admin/pages", label: t.nav.pages, Icon: FileText },
-  { href: "/admin/posts", label: t.nav.posts, Icon: BookOpen },
-  { href: "/admin/media", label: t.nav.media, Icon: ImageIcon },
-  { href: "/admin/menu", label: t.nav.menu, Icon: MenuIcon },
-  { href: "/admin/settings", label: t.nav.settings, Icon: Settings },
+  { href: "/administrator/dashboard", label: t.nav.dashboard, Icon: LayoutDashboard },
+  { href: "/administrator/websites", label: t.nav.websites, Icon: Globe },
+  { href: "/administrator/pages", label: t.nav.pages, Icon: FileText },
+  { href: "/administrator/posts", label: t.nav.posts, Icon: BookOpen },
+  { href: "/administrator/media", label: t.nav.media, Icon: ImageIcon },
+  { href: "/administrator/menu", label: t.nav.menu, Icon: MenuIcon },
+  { href: "/administrator/settings", label: t.nav.settings, Icon: Settings },
 ];
 
 export function Sidebar({
@@ -38,7 +38,7 @@ export function Sidebar({
     <aside className="hidden md:flex md:w-60 md:shrink-0 flex-col border-r border-border bg-surface">
       <div className="h-16 flex items-center px-5 border-b border-border">
         <Link
-          href="/admin/dashboard"
+          href="/administrator/dashboard"
           className="font-display font-semibold text-lg tracking-tight"
         >
           {t.app.name}

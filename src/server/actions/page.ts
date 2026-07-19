@@ -110,7 +110,7 @@ export async function renamePage(
     where: { id: parsed.data.pageId },
     data: { name: parsed.data.name },
   });
-  revalidatePath("/admin/pages");
+  revalidatePath("/administrator/pages");
   return {};
 }
 
@@ -131,6 +131,6 @@ export async function deletePage(
   }
 
   await db.page.delete({ where: { id: pageId } });
-  revalidatePath("/admin/pages");
+  revalidatePath("/administrator/pages");
   return {};
 }

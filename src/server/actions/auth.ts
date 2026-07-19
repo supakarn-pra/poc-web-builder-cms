@@ -41,7 +41,7 @@ export async function login(
   }
 
   await createSession(user.id, user.role as "OWNER" | "ADMIN");
-  redirect("/admin/dashboard");
+  redirect("/administrator/dashboard");
 }
 
 export async function register(
@@ -73,10 +73,10 @@ export async function register(
   });
 
   await createSession(user.id, "OWNER");
-  redirect("/admin/websites/new");
+  redirect("/administrator/websites/new");
 }
 
 export async function logout() {
   await deleteSession();
-  redirect("/login");
+  redirect("/administrator/login");
 }

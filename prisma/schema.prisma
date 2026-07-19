@@ -38,6 +38,9 @@ model Website {
   globalStyle  String // JSON: GlobalStyle
   headerRow    String? // JSON: RowInstance — ส่วนหัวใช้ร่วมทุกหน้า (null = default)
   footerRow    String? // JSON: RowInstance — ส่วนท้ายใช้ร่วมทุกหน้า
+  // snapshot ตอนกด "เผยแพร่" — หน้าเว็บจริง render จากคู่ published เท่านั้น
+  publishedHeaderRow String?
+  publishedFooterRow String?
   siteType     String
   status       String       @default("DRAFT")
   // เวอร์ชันที่ถูกเลือกเสิร์ฟที่ root "/" (มีได้ทีละอัน — บังคับใน action)
@@ -46,9 +49,21 @@ model Website {
   posts        BlogPost[]
   categories   Category[]
   media        MediaAsset[]
+  submissions  FormSubmission[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   publishedAt  DateTime?
+}
+
+model FormSubmission {
+  id        String   @id @default(cuid())
+  websiteId String
+  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  name      String
+  email     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 model MediaAsset {
@@ -104,7 +119,8 @@ model Page {
   name           String
   slug           String // "home" สำหรับหน้าแรก
   isHome         Boolean       @default(false)
-  sections       String // JSON: SectionInstance[]
+  sections       String // JSON: RowInstance[] (ฉบับร่าง — builder แก้ตัวนี้)
+  publishedSections String? // JSON: RowInstance[] snapshot ตอนเผยแพร่ (เว็บจริงใช้ตัวนี้)
   seoTitle       String?
   seoDescription String?
   status         String        @default("DRAFT")

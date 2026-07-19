@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# POC Web Builder
 
-## Getting Started
+ระบบสร้างเว็บไซต์แบบไม่ต้องเขียนโค้ด (no-code) — สร้างเว็บจาก Template,
+แก้หน้าเว็บด้วยตัวสร้างแบบลากวาง (แถว → คอลัมน์ → ชิ้นส่วน), เขียนบทความ,
+อัปโหลดรูป แล้วกด "เผยแพร่" ขึ้นเว็บจริง
 
-First, run the development server:
+| ส่วน | URL |
+|---|---|
+| เว็บไซต์จริง (ที่คนทั่วไปเห็น) | `/` |
+| ระบบจัดการ (CMS) | `/administrator` |
+| ตัวสร้างหน้า (Builder) | เข้าจากปุ่ม "แก้ไขเว็บไซต์" ใน CMS |
+
+---
+
+## เริ่มเล่นในเครื่อง (3 ขั้น)
+
+> **สิ่งที่ต้องมี:** Node.js **เวอร์ชัน 22** — ถ้าใช้ nvm ให้รัน `nvm use` ในโฟลเดอร์นี้
+> (มีไฟล์ `.nvmrc` เลือกเวอร์ชันให้อัตโนมัติ ถ้ายังไม่มีให้ `nvm install 22`)
 
 ```bash
+# 1) ติดตั้ง dependencies
+npm install
+
+# 2) ตั้งเครื่องครั้งแรก: สร้าง .env + ฐานข้อมูล + ข้อมูลตัวอย่าง (รันซ้ำได้ ปลอดภัย)
+npm run demo:init
+
+# 3) เปิดเซิร์ฟเวอร์
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เสร็จแล้วเปิด **http://localhost:3000/administrator** เข้าสู่ระบบด้วยบัญชีทดลอง:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+อีเมล     admin@example.com
+รหัสผ่าน  admin1234
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ลองตามนี้ได้เลย (ครบทั้ง flow ใน ~10 นาที):
 
-## Learn More
+1. เมนู **เว็บไซต์** → กดที่เว็บ "เว็บไซต์ตัวอย่าง" ให้กางออก → **แก้ไขเว็บไซต์**
+2. ในตัวสร้าง: คลิกข้อความเพื่อแก้, กด **+ เพิ่มแถวใหม่** เลือกแบบสำเร็จรูป, ลากเรียงแถวด้านซ้าย
+3. กด **ดูตัวอย่าง** (เห็นฉบับร่าง) → พอใจแล้วกด **เผยแพร่**
+4. กลับเมนูเว็บไซต์ → **ตั้งเป็นเว็บสาธารณะ** → เปิด http://localhost:3000/ เห็นเว็บจริง
+5. เมนู **บทความ** → เขียนบทความใหม่ → เผยแพร่ → เห็นในหน้าเว็บ (ถ้าหน้ามีชิ้นส่วน "รายการบทความ")
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## คำสั่งที่ใช้บ่อย
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| คำสั่ง | ทำอะไร |
+|---|---|
+| `npm run dev` | เปิดเซิร์ฟเวอร์พัฒนา (แก้โค้ดเห็นผลทันที) |
+| `npm run demo:init` | ตั้งเครื่องครั้งแรก / ซ่อมฐานข้อมูลให้กลับมาใช้ได้ |
+| `npm run db:studio` | เปิด GUI ดู-แก้ข้อมูลในฐานข้อมูล |
+| `npm run db:seed` | ใส่ข้อมูลตัวอย่างอีกครั้ง (ไม่ทับของที่มี) |
+| `npm run build` | สร้างเวอร์ชัน production (เช็คว่าโค้ด build ผ่าน) |
+| `npm run lint` | ตรวจคุณภาพโค้ด |
 
-## Deploy on Vercel
+## Build เวอร์ชัน production ในเครื่อง
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run build   # คอมไพล์
+npm start       # เสิร์ฟของจริงที่ http://localhost:3000
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy ขึ้นเซิร์ฟเวอร์
+
+มีให้ 2 ทาง — ดูขั้นตอนละเอียดใน **[DEPLOY.md](DEPLOY.md)**
+
+- **Docker / VPS** (แนะนำสำหรับ POC): `docker build` แล้ว `docker run` จบ — ฐานข้อมูล
+  SQLite อยู่ใน volume, migrate อัตโนมัติตอนสตาร์ต
+- **Vercel**: ต้องสลับฐานข้อมูลเป็น Postgres ก่อน (มีขั้นตอนในไฟล์)
+
+## แก้ปัญหาที่เจอบ่อย
+
+| อาการ | วิธีแก้ |
+|---|---|
+| Error `NODE_MODULE_VERSION ...` ตอนเปิดเว็บ | Node คนละเวอร์ชันกับตอนติดตั้ง — รัน `nvm use 22 && npm rebuild better-sqlite3` แล้วเปิด dev ใหม่ |
+| `Another next dev server is already running` | มี dev เปิดค้างอยู่ — ปิดตัวเก่าก่อน (ดู PID ในข้อความ error แล้ว `kill <PID>`) |
+| ลืมรหัสผ่าน admin / ข้อมูลพัง อยากเริ่มใหม่ | ลบไฟล์ `dev.db` แล้วรัน `npm run demo:init` ใหม่ |
+| แก้ `schema.prisma` แล้ว type ไม่อัปเดต | `npx prisma generate` แล้ว restart dev server |
+| หน้า `/` ขึ้น "ยังไม่มีเว็บไซต์ที่เผยแพร่" | เข้า CMS → เมนูเว็บไซต์ → กด "ตั้งเป็นเว็บสาธารณะ" ที่เว็บที่ต้องการ |
+
+## เอกสารเพิ่มเติม
+
+- [PROGRESS.md](PROGRESS.md) — สรุปฟีเจอร์ที่มี + สิ่งที่ยังไม่ทำ
+- [PLAN.md](PLAN.md) — สถาปัตยกรรม, data model, roadmap
+- [DEPLOY.md](DEPLOY.md) — คู่มือ deploy ละเอียด

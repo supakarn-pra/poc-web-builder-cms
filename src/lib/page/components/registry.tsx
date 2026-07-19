@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { FC } from "react";
 import type { ComponentType, GlobalStyle, SiteData } from "../types";
+import { ContactFormClient } from "./ContactFormClient";
 import { GallerySlider } from "./GallerySlider";
 import { StatNumber } from "./StatNumber";
 
@@ -448,31 +449,12 @@ const contactFormDef: ComponentDefinition<ContactFormProps> = {
   label: "แบบฟอร์มติดต่อ",
   schema: contactFormSchema,
   defaultProps: () => ({ buttonLabel: "ส่งข้อความ" }),
-  // การส่งจริง + เก็บข้อความมาใน Sprint 5
-  Render: ({ props }) => (
-    <form className="space-y-3">
-      <input
-        type="text"
-        placeholder="ชื่อของคุณ"
-        className="block w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm placeholder:text-text-subtle"
-      />
-      <input
-        type="email"
-        placeholder="อีเมล"
-        className="block w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm placeholder:text-text-subtle"
-      />
-      <textarea
-        placeholder="ข้อความ"
-        rows={4}
-        className="block w-full rounded-md border border-border bg-surface px-3 py-2.5 text-sm placeholder:text-text-subtle"
-      />
-      <button
-        type="button"
-        className="inline-flex items-center rounded-md bg-[color:var(--brand-primary)] px-5 py-2.5 text-white hover:bg-[color:var(--brand-primary-hover)]"
-      >
-        {props.buttonLabel}
-      </button>
-    </form>
+  // ส่งจริงเข้ากล่องข้อความ (ดูได้ที่ภาพรวมใน CMS); ใน canvas โดน pointer-events กันไว้
+  Render: ({ props, siteData }) => (
+    <ContactFormClient
+      websiteId={siteData?.websiteId}
+      buttonLabel={props.buttonLabel}
+    />
   ),
 };
 

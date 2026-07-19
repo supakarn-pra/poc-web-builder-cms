@@ -13,7 +13,7 @@ const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 async function requireWebsite(user: { id: string; role: string }) {
   return db.website.findFirst({
-    where: user.role === "ADMIN" ? {} : { ownerId: user.id },
+    where: { parentId: null, ...(user.role === "ADMIN" ? {} : { ownerId: user.id }) }, // เมนู CMS อิงเว็บหลักเสมอ (landing ไม่แย่ง context)
     orderBy: { updatedAt: "desc" },
     select: { id: true },
   });

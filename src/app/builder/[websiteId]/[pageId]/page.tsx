@@ -92,6 +92,7 @@ export default async function BuilderPage({
       key={page.id}
       websiteId={websiteId}
       pageId={page.id}
+      pageSlug={page.isHome ? "" : page.slug}
       websiteName={page.website.name}
       pages={page.website.pages}
       initialRows={parseRows(page.sections)}

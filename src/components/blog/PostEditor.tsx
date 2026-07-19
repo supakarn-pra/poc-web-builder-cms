@@ -94,7 +94,7 @@ export function PostEditor({
       <div className="flex h-14 items-center justify-between border-b border-border bg-surface px-4">
         <div className="flex items-center gap-2">
           <Link
-            href="/admin/posts"
+            href="/administrator/posts"
             className="grid h-8 w-8 place-items-center rounded-md text-text-muted hover:bg-surface-muted"
             aria-label="กลับไปรายการบทความ"
           >

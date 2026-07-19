@@ -8,6 +8,8 @@ import { requireUser } from "@/lib/auth";
 import { getTemplate, instantiateRows } from "@/lib/templates";
 import { makeFooterRow, makeHeaderRow } from "@/lib/page/presets";
 import { defaultGlobalStyle } from "@/lib/page/types";
+import { isReservedSlug } from "@/lib/reserved";
+import { publishWebsiteById } from "./publish";
 
 export interface CreateWebsiteState {
   error?: string;
@@ -76,64 +78,69 @@ export async function createWebsite(
   });
 
   const homePageId = website.pages[0]?.id;
-  redirect(homePageId ? `/builder/${website.id}/${homePageId}` : "/admin/dashboard");
+  redirect(homePageId ? `/builder/${website.id}/${homePageId}` : "/administrator/dashboard");
 }
 
-// ── โดเมนย่อย ──────────────────────────────────────────────────────────────
-// เว็บหลัก 1 เว็บ สร้างโดเมนย่อยแยกได้หลายอัน เช่น blog.mybrand.platform.com
-// เก็บเป็น Website ที่ parentId ชี้กลับเว็บหลัก, subdomain = "{label}.{parentSub}"
+// ── Landing แยก (sub-path) ─────────────────────────────────────────────────
+// เว็บหลัก 1 เว็บ มี landing สินค้าแยกได้หลายอัน เสิร์ฟที่ platform.com/{slug}
+// (ไม่ใช่ subdomain) — เก็บเป็น Website ที่ parentId ชี้เว็บหลัก, subdomain = slug ล้วน
 
-const subdomainSchema = z.object({
+const landingSchema = z.object({
   parentId: z.string().min(1),
   name: z.string().min(2, "ชื่อต้องยาวอย่างน้อย 2 ตัวอักษร").max(60),
-  label: z
+  slug: z
     .string()
-    .min(1, "กรุณากรอกชื่อโดเมนย่อย")
+    .min(1, "กรุณากรอกที่อยู่ (slug)")
     .max(30)
     .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, {
       message: "ใช้ได้เฉพาะ a-z, 0-9 และขีดกลาง (-)",
     }),
 });
 
-export async function createSubdomain(
+export async function createLanding(
   _prev: CreateWebsiteState,
   formData: FormData,
 ): Promise<CreateWebsiteState> {
   const user = await requireUser();
 
-  const parsed = subdomainSchema.safeParse({
+  const parsed = landingSchema.safeParse({
     parentId: formData.get("parentId"),
     name: formData.get("name"),
-    label: formData.get("label"),
+    slug: formData.get("slug"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
+  if (isReservedSlug(parsed.data.slug)) {
+    return { error: `"${parsed.data.slug}" เป็นคำสงวน ใช้เป็นที่อยู่ไม่ได้` };
+  }
 
   const parent = await db.website.findUnique({
     where: { id: parsed.data.parentId },
-    select: { id: true, ownerId: true, subdomain: true, parentId: true },
+    select: { id: true, ownerId: true, parentId: true },
   });
   if (!parent || (parent.ownerId !== user.id && user.role !== "ADMIN")) {
     return { error: "ไม่พบเว็บหลัก" };
   }
   if (parent.parentId) {
-    return { error: "สร้างโดเมนย่อยได้เฉพาะใต้เว็บหลักเท่านั้น" };
+    return { error: "สร้าง Landing แยกได้เฉพาะใต้เว็บหลักเท่านั้น" };
   }
 
-  const subdomain = `${parsed.data.label}.${parent.subdomain}`;
-  const existing = await db.website.findUnique({ where: { subdomain } });
+  // subdomain column เก็บ slug ล้วน (unique ทั้งระบบ) — ใช้เป็น sub-path /{slug}
+  const existing = await db.website.findUnique({
+    where: { subdomain: parsed.data.slug },
+  });
   if (existing) {
-    return { error: `${subdomain}.platform.com ถูกใช้แล้ว ลองชื่ออื่น` };
+    return { error: `ที่อยู่ /${parsed.data.slug} ถูกใช้แล้ว ลองชื่ออื่น` };
   }
 
   const site = await db.website.create({
     data: {
       name: parsed.data.name,
-      subdomain,
+      subdomain: parsed.data.slug,
       ownerId: user.id,
       parentId: parent.id,
-      siteType: "COMPANY",
+      siteType: "LANDING",
       globalStyle: JSON.stringify(defaultGlobalStyle),
       headerRow: JSON.stringify(makeHeaderRow(false)),
       footerRow: JSON.stringify(makeFooterRow()),
@@ -152,7 +159,48 @@ export async function createSubdomain(
   });
 
   const homePageId = site.pages[0]?.id;
-  redirect(homePageId ? `/builder/${site.id}/${homePageId}` : "/admin/websites");
+  redirect(homePageId ? `/builder/${site.id}/${homePageId}` : "/administrator/websites");
+}
+
+// ── โดเมนของคุณเอง (custom domain) ─────────────────────────────────────────
+export interface DomainState {
+  error?: string;
+  saved?: boolean;
+}
+
+const domainSchema = z
+  .string()
+  .max(100)
+  .regex(/^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/, {
+    message: "รูปแบบโดเมนไม่ถูกต้อง เช่น mybrand.com",
+  })
+  .or(z.literal(""));
+
+export async function updateCustomDomain(
+  _prev: DomainState,
+  formData: FormData,
+): Promise<DomainState> {
+  const user = await requireUser();
+  const websiteId = String(formData.get("websiteId") ?? "");
+  const parsed = domainSchema.safeParse(
+    String(formData.get("customDomain") ?? "").trim().toLowerCase(),
+  );
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const site = await db.website.findUnique({
+    where: { id: websiteId },
+    select: { ownerId: true },
+  });
+  if (!site || (site.ownerId !== user.id && user.role !== "ADMIN")) {
+    return { error: "ไม่พบเว็บไซต์" };
+  }
+
+  await db.website.update({
+    where: { id: websiteId },
+    data: { customDomain: parsed.data || null },
+  });
+  revalidatePath("/administrator/settings");
+  return { saved: true };
 }
 
 // ── เลือกเวอร์ชันที่เสิร์ฟที่ root "/" ─────────────────────────────────────
@@ -168,15 +216,17 @@ export async function setPublicWebsite(formData: FormData) {
     return;
   }
 
-  // public ได้ทีละอัน — ปลดอันเดิมก่อน แล้วตั้งอันนี้ + สถานะเป็นเผยแพร่
+  // public ได้ทีละอัน — ปลดอันเดิมก่อน แล้วตั้งอันนี้
   await db.$transaction([
     db.website.updateMany({ where: { isPublic: true }, data: { isPublic: false } }),
     db.website.update({
       where: { id: websiteId },
-      data: { isPublic: true, status: "PUBLISHED", publishedAt: new Date() },
+      data: { isPublic: true },
     }),
   ]);
+  // ตั้งเป็นสาธารณะ = เผยแพร่สถานะปัจจุบันทันที (สร้าง snapshot)
+  await publishWebsiteById(websiteId);
 
-  revalidatePath("/admin/websites");
+  revalidatePath("/administrator/websites");
   revalidatePath("/", "layout");
 }

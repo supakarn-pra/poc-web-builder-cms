@@ -4,7 +4,7 @@ import { blogExtensions } from "@/lib/blog/extensions";
 import { parseFooterRow, parseGlobalStyle, parseHeaderRow } from "@/lib/serialize";
 import { PageRows, RowView } from "@/lib/page/render";
 import { toCssVariables } from "@/lib/globalStyle";
-import type { SiteRecord } from "./PublicSitePage";
+import { siteChrome, type RenderMode, type SiteRecord } from "./PublicSitePage";
 
 export async function loadArticle(siteId: string, postSlugRaw: string) {
   const slug = decodeURIComponent(postSlugRaw);
@@ -23,11 +23,14 @@ export async function loadArticle(siteId: string, postSlugRaw: string) {
 export async function PublicArticle({
   site,
   post,
+  mode = "published",
 }: {
   site: SiteRecord & { name?: string };
   post: NonNullable<Awaited<ReturnType<typeof loadArticle>>>;
+  mode?: RenderMode;
 }) {
   const globalStyle = parseGlobalStyle(site.globalStyle);
+  const chrome = siteChrome(site, mode);
 
   let contentHtml = "";
   try {
@@ -43,7 +46,7 @@ export async function PublicArticle({
 
   return (
     <div style={toCssVariables(globalStyle)}>
-      <PageRows rows={[parseHeaderRow(site.headerRow)]} global={globalStyle} />
+      <PageRows rows={[parseHeaderRow(chrome.header)]} global={globalStyle} />
 
       <article className="mx-auto max-w-3xl px-4 py-12 @3xl:px-6">
         <header className="space-y-3">
@@ -91,7 +94,7 @@ export async function PublicArticle({
       </article>
 
       <div className="@container">
-        <RowView row={parseFooterRow(site.footerRow)} global={globalStyle} />
+        <RowView row={parseFooterRow(chrome.footer)} global={globalStyle} />
       </div>
     </div>
   );

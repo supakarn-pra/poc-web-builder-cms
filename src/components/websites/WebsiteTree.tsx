@@ -14,7 +14,7 @@ import {
   X,
 } from "lucide-react";
 import {
-  createSubdomain,
+  createLanding,
   setPublicWebsite,
   type CreateWebsiteState,
 } from "@/server/actions/website";
@@ -54,10 +54,12 @@ export function WebsiteTree({ sites }: { sites: TreeSite[] }) {
 function SiteCard({
   site,
   depth,
+  parentIsPublic = false,
   defaultOpen = false,
 }: {
   site: TreeSite;
   depth: number;
+  parentIsPublic?: boolean;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -66,8 +68,20 @@ function SiteCard({
   const isSub = depth > 0;
   const published = site.status === "PUBLISHED";
   const homeId = site.pages.find((p) => p.isHome)?.id ?? site.pages[0]?.id;
-  // เว็บสาธารณะเปิดที่ root "/", เว็บอื่นเปิดที่ /sites/{subdomain}
-  const publicUrl = site.isPublic ? "/" : `/sites/${site.subdomain}`;
+  // เว็บหลัก public → "/", Landing ใต้เว็บ public → "/{slug}", อื่น ๆ → พรีวิว
+  const publicUrl = isSub
+    ? parentIsPublic
+      ? `/${site.subdomain}`
+      : `/preview/${site.id}`
+    : site.isPublic
+      ? "/"
+      : `/preview/${site.id}`;
+  // ที่อยู่ที่แสดงในการ์ด
+  const displayUrl = isSub
+    ? `platform.com/${site.subdomain}`
+    : site.isPublic
+      ? "platform.com"
+      : "ยังไม่เผยแพร่";
 
   return (
     <div
@@ -115,9 +129,9 @@ function SiteCard({
             ) : null}
           </span>
           <span className="block truncate text-xs text-text-subtle">
-            {site.subdomain}.platform.com · {site.pages.length} หน้า
+            {displayUrl} · {site.pages.length} หน้า
             {site.children.length > 0
-              ? ` · ${site.children.length} โดเมนย่อย`
+              ? ` · ${site.children.length} Landing แยก`
               : ""}
           </span>
         </span>
@@ -211,19 +225,24 @@ function SiteCard({
             ) : null}
           </div>
 
-          {/* โดเมนย่อย — เฉพาะเว็บหลัก */}
+          {/* Landing แยก (sub-path) — เฉพาะเว็บหลัก */}
           {!isSub ? (
             <section className="space-y-2 border-t border-border pt-3">
-              <SectionLabel>โดเมนย่อย (Sub-domain)</SectionLabel>
+              <SectionLabel>หน้า Landing แยก (platform.com/…)</SectionLabel>
               {site.children.length > 0 ? (
                 <div className="space-y-2">
                   {site.children.map((child) => (
-                    <SiteCard key={child.id} site={child} depth={1} />
+                    <SiteCard
+                      key={child.id}
+                      site={child}
+                      depth={1}
+                      parentIsPublic={site.isPublic}
+                    />
                   ))}
                 </div>
               ) : (
                 <p className="px-2 text-xs text-text-subtle">
-                  ยังไม่มีโดเมนย่อย — เช่น blog, shop แยกออกจากเว็บหลัก
+                  ยังไม่มี Landing แยก — เช่น สินค้า AAA อยู่ที่ platform.com/aaa แยกจากหน้าหลัก
                 </p>
               )}
               <button
@@ -231,7 +250,7 @@ function SiteCard({
                 onClick={() => setAddSubFor(true)}
                 className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-[color:var(--brand-primary)] hover:bg-surface-muted"
               >
-                <Plus size={14} /> สร้างโดเมนย่อย
+                <Plus size={14} /> สร้าง Landing แยก
               </button>
             </section>
           ) : null}
@@ -242,9 +261,8 @@ function SiteCard({
         <AddPageModal websiteId={site.id} onClose={() => setAddPageFor(false)} />
       ) : null}
       {addSubFor ? (
-        <AddSubdomainModal
+        <AddLandingModal
           parentId={site.id}
-          parentSubdomain={site.subdomain}
           onClose={() => setAddSubFor(false)}
         />
       ) : null}
@@ -367,56 +385,55 @@ function slugify(name: string) {
     .slice(0, 30);
 }
 
-function AddSubdomainModal({
+function AddLandingModal({
   parentId,
-  parentSubdomain,
   onClose,
 }: {
   parentId: string;
-  parentSubdomain: string;
   onClose: () => void;
 }) {
   const [state, action, pending] = useActionState<CreateWebsiteState, FormData>(
-    createSubdomain,
+    createLanding,
     {},
   );
   const [name, setName] = useState("");
-  const [label, setLabel] = useState("");
-  const [labelTouched, setLabelTouched] = useState(false);
+  const [slug, setSlug] = useState("");
+  const [slugTouched, setSlugTouched] = useState(false);
 
   return (
-    <ModalFrame title="สร้างโดเมนย่อย" onClose={onClose}>
+    <ModalFrame title="สร้าง Landing แยก" onClose={onClose}>
       <form action={action} className="space-y-4">
         <input type="hidden" name="parentId" value={parentId} />
         <Input
           name="name"
-          label="ชื่อเว็บไซต์ย่อย"
-          placeholder="เช่น บล็อกร้านกาแฟ"
+          label="ชื่อ Landing"
+          placeholder="เช่น สินค้า AAA"
           value={name}
           onChange={(e) => {
             setName(e.target.value);
-            if (!labelTouched) setLabel(slugify(e.target.value));
+            if (!slugTouched) setSlug(slugify(e.target.value));
           }}
           required
           autoFocus
         />
         <div>
           <Input
-            name="label"
-            label="ชื่อโดเมนย่อย"
-            placeholder="blog"
-            value={label}
+            name="slug"
+            label="ที่อยู่ (sub-path)"
+            placeholder="aaa"
+            value={slug}
             onChange={(e) => {
-              setLabelTouched(true);
-              setLabel(slugify(e.target.value));
+              setSlugTouched(true);
+              setSlug(slugify(e.target.value));
             }}
             required
           />
           <p className="mt-1 text-xs text-text-subtle">
-            เว็บย่อยจะอยู่ที่{" "}
+            Landing นี้จะอยู่ที่{" "}
             <span className="text-[color:var(--brand-primary)]">
-              {label || "…"}.{parentSubdomain}.platform.com
-            </span>
+              platform.com/{slug || "…"}
+            </span>{" "}
+            (แยกจากหน้าหลัก แต่อยู่ใต้เว็บเดียวกัน)
           </p>
         </div>
         {state.error ? <p className="text-sm text-danger">{state.error}</p> : null}
@@ -425,7 +442,7 @@ function AddSubdomainModal({
             ยกเลิก
           </Button>
           <Button type="submit" disabled={pending}>
-            {pending ? "กำลังสร้าง…" : "สร้างโดเมนย่อย"}
+            {pending ? "กำลังสร้าง…" : "สร้าง Landing"}
           </Button>
         </div>
       </form>

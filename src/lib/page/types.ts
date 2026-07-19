@@ -27,9 +27,10 @@ export type ComponentType =
   | "navbar"
   | "siteFooter";
 
-/** ข้อมูลระดับเว็บไซต์ที่ component บางตัวใช้ตอน render (เช่น blogList) */
+/** ข้อมูลระดับเว็บไซต์ที่ component บางตัวใช้ตอน render (เช่น blogList, contactForm) */
 export interface SiteData {
-  blogBasePath: string; // เช่น /sites/demo/blog
+  websiteId?: string; // สำหรับ contactForm ส่งข้อความเข้าเว็บที่ถูกต้อง
+  blogBasePath: string; // เช่น /blog หรือ /aaa/blog
   posts: Array<{
     title: string;
     slug: string;

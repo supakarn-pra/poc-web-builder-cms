@@ -112,7 +112,7 @@ export function ChromeShell({
       <div className="h-14 flex items-center justify-between border-b border-border bg-surface px-4">
         <div className="flex items-center gap-2">
           <Link
-            href={backPageId ? `/builder/${websiteId}/${backPageId}` : "/admin/dashboard"}
+            href={backPageId ? `/builder/${websiteId}/${backPageId}` : "/administrator/dashboard"}
             className="grid h-8 w-8 place-items-center rounded-md hover:bg-surface-muted text-text-muted"
             aria-label="กลับไปแก้หน้า"
           >

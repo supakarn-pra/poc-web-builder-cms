@@ -2,10 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
 // Next 16: middleware ถูก rename เป็น proxy
-// CMS อยู่ใต้ /admin, ตัวสร้างอยู่ /builder — ตรวจ session แบบ optimistic
+// CMS อยู่ใต้ /administrator, ตัวสร้างอยู่ /builder — ตรวจ session แบบ optimistic
 // (อ่าน cookie อย่างเดียว ไม่แตะ DB) การตรวจสิทธิ์จริงอยู่ที่ requireUser
 
-const PROTECTED_PREFIXES = ["/admin", "/builder"];
+const PROTECTED_PREFIXES = ["/administrator", "/builder", "/preview"];
+// หน้า auth อยู่ใต้ /administrator แต่ต้องเข้าได้โดยไม่มี session
+const PUBLIC_PATHS = new Set([
+  "/administrator/login",
+  "/administrator/register",
+]);
 
 function getSecretKey() {
   const secret =
@@ -15,6 +20,7 @@ function getSecretKey() {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  if (PUBLIC_PATHS.has(pathname)) return NextResponse.next();
   const isProtected = PROTECTED_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
   );
@@ -30,11 +36,11 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const loginUrl = new URL("/login", request.url);
+  const loginUrl = new URL("/administrator/login", request.url);
   loginUrl.searchParams.set("from", pathname);
   return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/admin", "/builder/:path*"],
+  matcher: ["/administrator/:path*", "/administrator", "/builder/:path*", "/preview/:path*"],
 };

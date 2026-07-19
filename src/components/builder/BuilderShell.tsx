@@ -34,6 +34,7 @@ export type Selection =
 interface Props {
   websiteId: string;
   pageId: string;
+  pageSlug: string;
   websiteName: string;
   pages: BuilderPageInfo[];
   initialRows: RowInstance[];
@@ -71,6 +72,7 @@ function insertIndex(rows: RowInstance[]): number {
 export function BuilderShell({
   websiteId,
   pageId,
+  pageSlug,
   websiteName,
   pages,
   initialRows,
@@ -247,6 +249,7 @@ export function BuilderShell({
       <BuilderTopbar
         websiteId={websiteId}
         pageId={pageId}
+        pageSlug={pageSlug}
         websiteName={websiteName}
         pages={pages}
         device={device}
