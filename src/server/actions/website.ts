@@ -17,15 +17,34 @@ export interface CreateWebsiteState {
 
 const createSchema = z.object({
   siteType: z.enum(["LANDING", "COMPANY", "BLOG"]),
-  name: z.string().min(2, "ชื่อเว็บไซต์ต้องยาวอย่างน้อย 2 ตัวอักษร").max(60),
-  subdomain: z
-    .string()
-    .min(3, "Subdomain ต้องยาวอย่างน้อย 3 ตัวอักษร")
-    .max(30)
-    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, {
-      message: "ใช้ได้เฉพาะ a-z, 0-9 และขีดกลาง (-)",
-    }),
+  name: z.string().min(2, "ชื่อเวอร์ชันต้องยาวอย่างน้อย 2 ตัวอักษร").max(60),
 });
+
+/**
+ * subdomain ของเวอร์ชัน (top-level) ไม่ได้ใช้ route แล้ว (เว็บจริงเสิร์ฟตัวที่
+ * isPublic ที่ root, พรีวิวใช้ /preview/{id}) แต่คอลัมน์ยัง unique อยู่ —
+ * สร้างให้เองจากชื่อ ผู้ใช้ไม่ต้องกรอก
+ */
+async function generateSubdomain(name: string): Promise<string> {
+  const base =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/[\s_]+/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 24) || "version";
+  let candidate = base;
+  for (let i = 0; i < 20; i++) {
+    const dup = await db.website.findUnique({
+      where: { subdomain: candidate },
+      select: { id: true },
+    });
+    if (!dup) return candidate;
+    candidate = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+  }
+  return `${base}-${Date.now().toString(36)}`;
+}
 
 export async function createWebsite(
   _prev: CreateWebsiteState,
@@ -36,7 +55,6 @@ export async function createWebsite(
   const parsed = createSchema.safeParse({
     siteType: formData.get("siteType"),
     name: formData.get("name"),
-    subdomain: formData.get("subdomain"),
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
@@ -47,17 +65,10 @@ export async function createWebsite(
     return { error: "ไม่พบ Template ที่เลือก" };
   }
 
-  const existing = await db.website.findUnique({
-    where: { subdomain: parsed.data.subdomain },
-  });
-  if (existing) {
-    return { error: "Subdomain นี้ถูกใช้แล้ว ลองชื่ออื่น" };
-  }
-
   const website = await db.website.create({
     data: {
       name: parsed.data.name,
-      subdomain: parsed.data.subdomain,
+      subdomain: await generateSubdomain(parsed.data.name),
       ownerId: user.id,
       siteType: parsed.data.siteType,
       globalStyle: JSON.stringify(defaultGlobalStyle),
