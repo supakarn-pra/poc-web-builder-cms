@@ -45,6 +45,9 @@ interface Props {
 }
 
 const AUTOSAVE_DEBOUNCE_MS = 800;
+/** เก็บ undo ได้กี่ก้าว + การแก้ติด ๆ กัน (เช่นพิมพ์รัว) นับรวมเป็นก้าวเดียว */
+const HISTORY_LIMIT = 50;
+const HISTORY_COALESCE_MS = 800;
 
 function cloneRow(row: RowInstance): RowInstance {
   return {
@@ -96,6 +99,91 @@ export function BuilderShell({
     latestRows.current = rows;
   }, [rows]);
 
+  // ---- Undo / Redo ---------------------------------------------------------
+  // history อยู่ใน ref (ไม่ re-render ทุกครั้ง) + historyTick ไว้อัปเดตปุ่ม
+  const past = useRef<RowInstance[][]>([]);
+  const future = useRef<RowInstance[][]>([]);
+  const lastCommitAt = useRef(0);
+  // สถานะปุ่ม undo/redo (อ่าน ref ตอน render ไม่ได้ — sync เป็น state แทน)
+  const [history, setHistory] = useState({ canUndo: false, canRedo: false });
+  const syncHistory = useCallback(() => {
+    setHistory({
+      canUndo: past.current.length > 0,
+      canRedo: future.current.length > 0,
+    });
+  }, []);
+
+  /**
+   * ทางเดียวที่ใช้แก้ rows — บันทึก history ก่อนเปลี่ยน
+   * ทำนอก setState updater เพื่อเลี่ยง StrictMode double-invoke ยัด history ซ้ำ
+   */
+  const commitRows = useCallback(
+    (updater: (cur: RowInstance[]) => RowInstance[]) => {
+      const cur = latestRows.current;
+      const next = updater(cur);
+      if (next === cur) return;
+      const now = Date.now();
+      if (now - lastCommitAt.current > HISTORY_COALESCE_MS) {
+        past.current.push(cur);
+        if (past.current.length > HISTORY_LIMIT) past.current.shift();
+      }
+      lastCommitAt.current = now;
+      future.current = [];
+      latestRows.current = next;
+      setRows(next);
+      syncHistory();
+    },
+    [syncHistory],
+  );
+
+  const undo = useCallback(() => {
+    const prev = past.current.pop();
+    if (!prev) return;
+    future.current.push(latestRows.current);
+    if (future.current.length > HISTORY_LIMIT) future.current.shift();
+    latestRows.current = prev;
+    lastCommitAt.current = 0; // แก้ครั้งถัดไปเริ่มก้าวใหม่เสมอ
+    setRows(prev);
+    syncHistory();
+  }, [syncHistory]);
+
+  const redo = useCallback(() => {
+    const next = future.current.pop();
+    if (!next) return;
+    past.current.push(latestRows.current);
+    if (past.current.length > HISTORY_LIMIT) past.current.shift();
+    latestRows.current = next;
+    lastCommitAt.current = 0;
+    setRows(next);
+    syncHistory();
+  }, [syncHistory]);
+
+  // Cmd/Ctrl+Z = ย้อนกลับ, Shift+Cmd/Ctrl+Z หรือ Ctrl+Y = ทำซ้ำ
+  // เว้นตอนพิมพ์ใน input/textarea/contentEditable — ให้ browser จัดการ text undo เอง
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      // e.target อาจเป็น Document (ไม่มี .closest) — เช็คเป็น Element ก่อน
+      const target = e.target instanceof Element ? e.target : null;
+      const inEditable = !!target?.closest(
+        'input, textarea, select, [contenteditable="true"]',
+      );
+      if (inEditable) return;
+      const key = e.key.toLowerCase();
+      if (key === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undo, redo]);
+
   const persist = useCallback(async () => {
     setSaveStatus("saving");
     try {
@@ -128,9 +216,9 @@ export function BuilderShell({
 
   const mutateRow = useCallback(
     (rowId: string, fn: (row: RowInstance) => RowInstance) => {
-      setRows((cur) => cur.map((r) => (r.id === rowId ? fn(r) : r)));
+      commitRows((cur) => cur.map((r) => (r.id === rowId ? fn(r) : r)));
     },
-    [],
+    [commitRows],
   );
 
   const mutateColumn = useCallback(
@@ -230,12 +318,12 @@ export function BuilderShell({
         ? makeBlankRow(source.spans)
         : undefined;
     if (!row) return;
-    setRows((cur) => {
+    commitRows((cur) => {
       const idx = insertIndex(cur);
       return [...cur.slice(0, idx), row, ...cur.slice(idx)];
     });
     setSelection({ kind: "row", rowId: row.id });
-  }, []);
+  }, [commitRows]);
 
   // -------------------------------------------------------------------------
 
@@ -255,6 +343,14 @@ export function BuilderShell({
         device={device}
         onDeviceChange={setDevice}
         saveStatus={saveStatus}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={history.canUndo}
+        canRedo={history.canRedo}
+        onRestoreVersion={(restored) => {
+          commitRows(() => restored);
+          setSelection(null);
+        }}
       />
       <div className="flex flex-1 min-h-0">
         <RowList
@@ -268,7 +364,7 @@ export function BuilderShell({
             }))
           }
           onDuplicate={(id) => {
-            setRows((cur) => {
+            commitRows((cur) => {
               const idx = cur.findIndex((r) => r.id === id);
               if (idx < 0) return cur;
               return [
@@ -280,10 +376,10 @@ export function BuilderShell({
           }}
           onDelete={(id) => {
             if (!window.confirm("ต้องการลบแถวนี้ใช่ไหม?")) return;
-            setRows((cur) => cur.filter((r) => r.id !== id));
+            commitRows((cur) => cur.filter((r) => r.id !== id));
             setSelection((sel) => (sel?.rowId === id ? null : sel));
           }}
-          onReorder={setRows}
+          onReorder={(next) => commitRows(() => next)}
           onAdd={() => setAddOpen(true)}
         />
         <Canvas
@@ -291,6 +387,7 @@ export function BuilderShell({
           rows={rows}
           selection={selection}
           onSelect={setSelection}
+          onInlineEdit={updateComponentProps}
           globalStyle={globalStyle}
           chrome={{
             header: chromeHeader,

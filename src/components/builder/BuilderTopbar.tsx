@@ -3,20 +3,24 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
+import { useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
   Check,
   ChevronDown,
   ExternalLink,
+  History,
   Loader2,
   Redo2,
   Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DevicePreviewSwitch, type DeviceMode } from "./DevicePreviewSwitch";
+import { VersionHistoryModal } from "./VersionHistoryModal";
 import type { BuilderPageInfo } from "./BuilderShell";
 import { publishWebsite, type PublishState } from "@/server/actions/publish";
+import type { RowInstance } from "@/lib/page/types";
 import { t } from "@/lib/messages";
 
 export type SaveStatus = "saved" | "pending" | "saving" | "error";
@@ -40,6 +44,11 @@ export function BuilderTopbar({
   device,
   onDeviceChange,
   saveStatus,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  onRestoreVersion,
 }: {
   websiteId: string;
   pageId: string;
@@ -50,9 +59,15 @@ export function BuilderTopbar({
   device: DeviceMode;
   onDeviceChange: (v: DeviceMode) => void;
   saveStatus: SaveStatus;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onRestoreVersion: (rows: RowInstance[]) => void;
 }) {
   const router = useRouter();
   const status = statusDisplay[saveStatus];
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [pubState, pubAction, publishing] = useActionState<PublishState, FormData>(
     publishWebsite,
     {},
@@ -125,19 +140,32 @@ export function BuilderTopbar({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="grid h-8 w-8 place-items-center rounded-md text-text-muted hover:bg-surface-muted"
+          onClick={onUndo}
+          disabled={!canUndo}
+          className="grid h-8 w-8 place-items-center rounded-md text-text-muted hover:bg-surface-muted disabled:opacity-30"
           aria-label="ย้อนกลับ"
-          title="Undo — มาใน Sprint 6"
+          title="ย้อนกลับ (Ctrl+Z)"
         >
           <Undo2 size={16} />
         </button>
         <button
           type="button"
-          className="grid h-8 w-8 place-items-center rounded-md text-text-muted hover:bg-surface-muted"
+          onClick={onRedo}
+          disabled={!canRedo}
+          className="grid h-8 w-8 place-items-center rounded-md text-text-muted hover:bg-surface-muted disabled:opacity-30"
           aria-label="ทำซ้ำ"
-          title="Redo — มาใน Sprint 6"
+          title="ทำซ้ำ (Ctrl+Shift+Z)"
         >
           <Redo2 size={16} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(true)}
+          className="grid h-8 w-8 place-items-center rounded-md text-text-muted hover:bg-surface-muted"
+          aria-label="ประวัติเวอร์ชัน"
+          title="กู้คืนเวอร์ชันที่เคยเผยแพร่"
+        >
+          <History size={16} />
         </button>
         {pubState.publishedAt ? (
           <span className="hidden lg:flex items-center gap-1 text-xs text-success">
@@ -166,6 +194,16 @@ export function BuilderTopbar({
           </Button>
         </form>
       </div>
+
+      <VersionHistoryModal
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        pageId={pageId}
+        onRestore={(rows) => {
+          onRestoreVersion(rows);
+          setHistoryOpen(false);
+        }}
+      />
     </div>
   );
 }
