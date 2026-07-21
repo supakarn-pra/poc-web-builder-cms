@@ -93,22 +93,31 @@ export async function PublicSitePage({
   ];
   const globalStyle = parseGlobalStyle(site.globalStyle);
 
-  const posts = await db.blogPost.findMany({
-    where: { websiteId: site.id, status: "PUBLISHED" },
-    orderBy: { publishedAt: "desc" },
-    take: 24,
-    select: {
-      title: true,
-      slug: true,
-      excerpt: true,
-      coverImageUrl: true,
-      publishedAt: true,
-      category: { select: { name: true } },
-    },
-  });
+  const [posts, sitePages] = await Promise.all([
+    db.blogPost.findMany({
+      where: { websiteId: site.id, status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+      take: 24,
+      select: {
+        title: true,
+        slug: true,
+        excerpt: true,
+        coverImageUrl: true,
+        publishedAt: true,
+        category: { select: { name: true } },
+      },
+    }),
+    // สำหรับ resolve ลิงก์ภายใน "page:{id}" ของปุ่ม/เมนู
+    db.page.findMany({
+      where: { websiteId: site.id },
+      select: { id: true, slug: true, isHome: true },
+    }),
+  ]);
   const siteData = {
     websiteId: site.id,
+    basePath,
     blogBasePath: `${basePath}/blog`,
+    pages: sitePages,
     posts: posts.map((p) => ({
       title: p.title,
       slug: p.slug,

@@ -30,7 +30,11 @@ export type ComponentType =
 /** ข้อมูลระดับเว็บไซต์ที่ component บางตัวใช้ตอน render (เช่น blogList, contactForm) */
 export interface SiteData {
   websiteId?: string; // สำหรับ contactForm ส่งข้อความเข้าเว็บที่ถูกต้อง
+  /** base path ของเว็บตอน render — "" (root), "/{slug}" (landing), "/preview/{id}" */
+  basePath: string;
   blogBasePath: string; // เช่น /blog หรือ /aaa/blog
+  /** หน้าทั้งหมดของเว็บ — ใช้ resolve ลิงก์ภายใน "page:{id}" (ดู lib/page/links.ts) */
+  pages: Array<{ id: string; slug: string; isHome: boolean }>;
   posts: Array<{
     title: string;
     slug: string;

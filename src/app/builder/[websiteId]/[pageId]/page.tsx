@@ -30,9 +30,8 @@ export default async function BuilderPage({
         headerRow: true,
         footerRow: true,
         pages: {
-          where: { isHome: true },
-          select: { id: true },
-          take: 1,
+          select: { id: true, name: true, slug: true, isHome: true },
+          orderBy: [{ isHome: "desc" }, { createdAt: "asc" }],
         },
       },
     });
@@ -52,6 +51,7 @@ export default async function BuilderPage({
         part={part}
         initialRow={row}
         backPageId={website.pages[0]?.id ?? null}
+        pages={website.pages}
         globalStyle={parseGlobalStyle(website.globalStyle)}
       />
     );
@@ -70,7 +70,7 @@ export default async function BuilderPage({
           headerRow: true,
           footerRow: true,
           pages: {
-            select: { id: true, name: true, isHome: true },
+            select: { id: true, name: true, slug: true, isHome: true },
             orderBy: [{ isHome: "desc" }, { createdAt: "asc" }],
           },
         },

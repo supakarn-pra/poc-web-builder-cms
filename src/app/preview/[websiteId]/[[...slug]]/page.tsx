@@ -35,7 +35,9 @@ export default async function PreviewSite({
   if (path.kind === "article") {
     const post = await loadArticle(site.id, path.postSlug);
     if (!post) notFound();
-    return <PublicArticle site={site} post={post} mode="draft" />;
+    return (
+      <PublicArticle site={site} post={post} basePath={basePath} mode="draft" />
+    );
   }
   return (
     <PublicSitePage

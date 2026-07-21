@@ -22,6 +22,7 @@ import {
 export interface BuilderPageInfo {
   id: string;
   name: string;
+  slug: string;
   isHome: boolean;
 }
 
@@ -397,6 +398,7 @@ export function BuilderShell({
         />
         <SettingsPanel
           rows={rows}
+          pages={pages}
           selection={selection}
           selectedRow={selectedRow}
           onSelect={setSelection}

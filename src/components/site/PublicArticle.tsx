@@ -23,14 +23,29 @@ export async function loadArticle(siteId: string, postSlugRaw: string) {
 export async function PublicArticle({
   site,
   post,
+  basePath = "",
   mode = "published",
 }: {
   site: SiteRecord & { name?: string };
   post: NonNullable<Awaited<ReturnType<typeof loadArticle>>>;
+  basePath?: string;
   mode?: RenderMode;
 }) {
   const globalStyle = parseGlobalStyle(site.globalStyle);
   const chrome = siteChrome(site, mode);
+
+  // ให้เมนู/ปุ่มใน header-footer resolve ลิงก์ภายใน "page:{id}" ได้เหมือนหน้าปกติ
+  const sitePages = await db.page.findMany({
+    where: { websiteId: site.id },
+    select: { id: true, slug: true, isHome: true },
+  });
+  const siteData = {
+    websiteId: site.id,
+    basePath,
+    blogBasePath: `${basePath}/blog`,
+    pages: sitePages,
+    posts: [],
+  };
 
   let contentHtml = "";
   try {
@@ -46,7 +61,11 @@ export async function PublicArticle({
 
   return (
     <div style={toCssVariables(globalStyle)}>
-      <PageRows rows={[parseHeaderRow(chrome.header)]} global={globalStyle} />
+      <PageRows
+        rows={[parseHeaderRow(chrome.header)]}
+        global={globalStyle}
+        siteData={siteData}
+      />
 
       <article className="mx-auto max-w-3xl px-4 py-12 @3xl:px-6">
         <header className="space-y-3">
@@ -94,7 +113,11 @@ export async function PublicArticle({
       </article>
 
       <div className="@container">
-        <RowView row={parseFooterRow(chrome.footer)} global={globalStyle} />
+        <RowView
+          row={parseFooterRow(chrome.footer)}
+          global={globalStyle}
+          siteData={siteData}
+        />
       </div>
     </div>
   );

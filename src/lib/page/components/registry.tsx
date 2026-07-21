@@ -4,6 +4,7 @@ import type { ComponentType, GlobalStyle, SiteData } from "../types";
 import { ContactFormClient } from "./ContactFormClient";
 import { GallerySlider } from "./GallerySlider";
 import { StatNumber } from "./StatNumber";
+import { resolveHref } from "../links";
 
 /**
  * Component registry — ชิ้นส่วนที่วางใน column ได้
@@ -136,7 +137,7 @@ const buttonDef: ComponentDefinition<ButtonProps> = {
     align: "inherit",
     buttons: [{ label: "เริ่มใช้งาน", href: "#", variant: "solid" }],
   }),
-  Render: ({ props }) => {
+  Render: ({ props, siteData }) => {
     const p = normalizeButtonProps(props as Record<string, unknown>);
     const align = p.align ?? "inherit";
     return (
@@ -150,7 +151,7 @@ const buttonDef: ComponentDefinition<ButtonProps> = {
         {p.buttons.map((b, i) => (
           <a
             key={i}
-            href={b.href}
+            href={resolveHref(b.href, siteData)}
             className={`inline-flex items-center rounded-md px-5 py-2.5 ${buttonVariantClass[b.variant ?? "solid"]}`}
           >
             {b.label}
@@ -547,7 +548,7 @@ const navbarDef: ComponentDefinition<NavbarProps> = {
       { label: "ติดต่อ", href: "#" },
     ],
   }),
-  Render: ({ props }) => (
+  Render: ({ props, siteData }) => (
     <div className="flex h-16 items-center justify-between">
       <span className="font-display text-lg font-semibold">
         {props.brandName}
@@ -556,7 +557,7 @@ const navbarDef: ComponentDefinition<NavbarProps> = {
         {props.links.map((l) => (
           <a
             key={l.label}
-            href={l.href}
+            href={resolveHref(l.href, siteData)}
             className="hover:text-[color:var(--brand-primary)]"
           >
             {l.label}

@@ -66,7 +66,10 @@ function InlineComponentEditor({
 
 /** ตัวอย่างบทความใน canvas — ของจริงดึงจาก DB ตอน render หน้าเว็บ */
 const MOCK_SITE_DATA: SiteData = {
+  basePath: "",
   blogBasePath: "#",
+  // ใน canvas ลิงก์คลิกไม่ได้อยู่แล้ว — "page:{id}" ที่หาไม่เจอจะ resolve เป็น "#"
+  pages: [],
   posts: [
     {
       title: "ตัวอย่างบทความที่ 1",
@@ -177,8 +180,6 @@ export function Canvas({
       <div
         className={cn(
           "@container mx-auto rounded-lg border border-border bg-surface shadow-[var(--shadow-sm)] transition-[width]",
-          // ใน canvas ให้คลิก = เลือก component เสมอ — ห้าม link/วิดีโอ/ฟอร์มแย่ง event
-          "[&_a]:pointer-events-none [&_iframe]:pointer-events-none [&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_form_button]:pointer-events-none",
           deviceWidth[device],
         )}
         style={toCssVariables(globalStyle)}
@@ -191,134 +192,138 @@ export function Canvas({
             label="ส่วนหัวของเว็บไซต์ (ใช้ทุกหน้า) — คลิกเพื่อแก้ไข"
           />
         ) : null}
-        {rows.map((row) => {
-          if (row.style.hidden) return null;
-          const rowSelected =
-            selection?.kind === "row" && selection.rowId === row.id;
-          return (
-            <section
-              key={row.id}
-              onClick={() => onSelect({ kind: "row", rowId: row.id })}
-              className={cn(
-                rowClasses(row),
-                "relative cursor-pointer outline outline-2 -outline-offset-2 outline-transparent hover:outline-[color:var(--brand-primary)]/30",
-                rowSelected && "outline-[color:var(--brand-primary)]",
-              )}
-              style={{ background: row.style.background }}
-            >
-              {rowSelected ? <Chip text={row.label} /> : null}
-              <div className={rowInnerClasses(row)}>
-                {row.columns.map((col) => {
-                  const colSelected =
-                    selection?.kind === "column" &&
-                    selection.colId === col.id;
-                  return (
-                    <div
-                      key={col.id}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelect({
-                          kind: "column",
-                          rowId: row.id,
-                          colId: col.id,
-                        });
-                      }}
-                      className={cn(
-                        columnClasses(col),
-                        "relative min-h-10 outline-dashed outline-1 -outline-offset-1 outline-transparent hover:outline-[color:var(--brand-secondary)]/50",
-                        colSelected &&
-                          "outline-[color:var(--brand-secondary)] outline-2",
-                      )}
-                    >
-                      {colSelected ? (
-                        <Chip text="คอลัมน์" tone="secondary" />
-                      ) : null}
-                      {col.components.length === 0 ? (
-                        <div className="flex w-full items-center justify-center rounded-md border border-dashed border-border-strong py-8 text-xs text-text-subtle">
-                          คอลัมน์ว่าง — เลือกแล้วกด &quot;เพิ่มชิ้นส่วน&quot;
-                        </div>
-                      ) : null}
-                      {col.components.map((component) => {
-                        const compSelected =
-                          selection?.kind === "component" &&
-                          selection.compId === component.id;
-                        const editable =
-                          !!onInlineEdit && INLINE_EDITABLE.has(component.type);
-                        const isEditing = editingId === component.id;
-                        return (
-                          <div
-                            key={component.id}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isEditing) return;
-                              onSelect({
-                                kind: "component",
-                                rowId: row.id,
-                                colId: col.id,
-                                compId: component.id,
-                              });
-                            }}
-                            onDoubleClick={(e) => {
-                              if (!editable) return;
-                              e.stopPropagation();
-                              setEditingId(component.id);
-                            }}
-                            title={
-                              editable && !isEditing
-                                ? "ดับเบิลคลิกเพื่อแก้ข้อความ"
-                                : undefined
-                            }
-                            className={cn(
-                              "relative w-full outline outline-1 outline-transparent hover:outline-[color:var(--brand-primary)]/40 rounded-sm",
-                              compSelected &&
-                                !isEditing &&
-                                "outline-2 outline-[color:var(--brand-primary)]",
-                            )}
-                          >
-                            {compSelected && !isEditing ? (
-                              <Chip
-                                text={
-                                  componentRegistry[component.type]?.label ??
-                                  component.type
-                                }
-                              />
-                            ) : null}
-                            {isEditing ? (
-                              <InlineComponentEditor
-                                component={component}
-                                onCommit={(text) => {
-                                  onInlineEdit?.(
-                                    row.id,
-                                    col.id,
-                                    component.id,
-                                    { text },
-                                  );
-                                  setEditingId(null);
-                                }}
-                                onCancel={() => setEditingId(null)}
-                              />
-                            ) : (
-                              <ComponentView
-                                component={component}
-                                global={globalStyle}
-                                siteData={MOCK_SITE_DATA}
-                              />
-                            )}
+        {/* กฎปิด pointer events ครอบเฉพาะแถวเนื้อหา — ให้คลิก = เลือก component เสมอ
+            (ห้าม link/วิดีโอ/ฟอร์มแย่ง event) แต่ไม่โดน Link overlay ของส่วนหัว/ท้าย */}
+        <div className="[&_a]:pointer-events-none [&_iframe]:pointer-events-none [&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_form_button]:pointer-events-none">
+          {rows.map((row) => {
+            if (row.style.hidden) return null;
+            const rowSelected =
+              selection?.kind === "row" && selection.rowId === row.id;
+            return (
+              <section
+                key={row.id}
+                onClick={() => onSelect({ kind: "row", rowId: row.id })}
+                className={cn(
+                  rowClasses(row),
+                  "relative cursor-pointer outline outline-2 -outline-offset-2 outline-transparent hover:outline-[color:var(--brand-primary)]/30",
+                  rowSelected && "outline-[color:var(--brand-primary)]",
+                )}
+                style={{ background: row.style.background }}
+              >
+                {rowSelected ? <Chip text={row.label} /> : null}
+                <div className={rowInnerClasses(row)}>
+                  {row.columns.map((col) => {
+                    const colSelected =
+                      selection?.kind === "column" &&
+                      selection.colId === col.id;
+                    return (
+                      <div
+                        key={col.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelect({
+                            kind: "column",
+                            rowId: row.id,
+                            colId: col.id,
+                          });
+                        }}
+                        className={cn(
+                          columnClasses(col),
+                          "relative min-h-10 outline-dashed outline-1 -outline-offset-1 outline-transparent hover:outline-[color:var(--brand-secondary)]/50",
+                          colSelected &&
+                            "outline-[color:var(--brand-secondary)] outline-2",
+                        )}
+                      >
+                        {colSelected ? (
+                          <Chip text="คอลัมน์" tone="secondary" />
+                        ) : null}
+                        {col.components.length === 0 ? (
+                          <div className="flex w-full items-center justify-center rounded-md border border-dashed border-border-strong py-8 text-xs text-text-subtle">
+                            คอลัมน์ว่าง — เลือกแล้วกด &quot;เพิ่มชิ้นส่วน&quot;
                           </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-        {rows.length === 0 ? (
-          <div className="p-16 text-center text-sm text-text-muted">
-            ยังไม่มีแถวในหน้านี้ — กด &quot;เพิ่มแถวใหม่&quot; ด้านซ้าย
-          </div>
-        ) : null}
+                        ) : null}
+                        {col.components.map((component) => {
+                          const compSelected =
+                            selection?.kind === "component" &&
+                            selection.compId === component.id;
+                          const editable =
+                            !!onInlineEdit && INLINE_EDITABLE.has(component.type);
+                          const isEditing = editingId === component.id;
+                          return (
+                            <div
+                              key={component.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isEditing) return;
+                                onSelect({
+                                  kind: "component",
+                                  rowId: row.id,
+                                  colId: col.id,
+                                  compId: component.id,
+                                });
+                              }}
+                              onDoubleClick={(e) => {
+                                if (!editable) return;
+                                e.stopPropagation();
+                                setEditingId(component.id);
+                              }}
+                              title={
+                                editable && !isEditing
+                                  ? "ดับเบิลคลิกเพื่อแก้ข้อความ"
+                                  : undefined
+                              }
+                              className={cn(
+                                "relative w-full outline outline-1 outline-transparent hover:outline-[color:var(--brand-primary)]/40 rounded-sm",
+                                compSelected &&
+                                  !isEditing &&
+                                  "outline-2 outline-[color:var(--brand-primary)]",
+                              )}
+                            >
+                              {compSelected && !isEditing ? (
+                                <Chip
+                                  text={
+                                    componentRegistry[component.type]?.label ??
+                                    component.type
+                                  }
+                                />
+                              ) : null}
+                              {isEditing ? (
+                                <InlineComponentEditor
+                                  component={component}
+                                  onCommit={(text) => {
+                                    onInlineEdit?.(
+                                      row.id,
+                                      col.id,
+                                      component.id,
+                                      { text },
+                                    );
+                                    setEditingId(null);
+                                  }}
+                                  onCancel={() => setEditingId(null)}
+                                />
+                              ) : (
+                                <ComponentView
+                                  component={component}
+                                  global={globalStyle}
+                                  siteData={MOCK_SITE_DATA}
+                                />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+          {rows.length === 0 ? (
+            <div className="p-16 text-center text-sm text-text-muted">
+              ยังไม่มีแถวในหน้านี้ — กด &quot;เพิ่มแถวใหม่&quot; ด้านซ้าย
+            </div>
+          ) : null}
+        </div>
         {chrome ? (
           <LockedChromeRow
             row={chrome.footer}

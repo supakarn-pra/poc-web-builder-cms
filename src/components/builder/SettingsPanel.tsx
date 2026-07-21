@@ -45,11 +45,14 @@ import {
   type RowInstance,
   type RowStyle,
 } from "@/lib/page/types";
-import type { Selection } from "./BuilderShell";
+import { pageLinkValue, parsePageLink } from "@/lib/page/links";
+import type { BuilderPageInfo, Selection } from "./BuilderShell";
 import { t } from "@/lib/messages";
 
 interface Props {
   rows: RowInstance[];
+  /** หน้าทั้งหมดของเว็บ — ให้ปุ่ม/เมนูเลือกลิงก์ไปหน้าในเว็บได้ */
+  pages: BuilderPageInfo[];
   selection: Selection;
   selectedRow: RowInstance | null;
   onSelect: (sel: Selection) => void;
@@ -435,6 +438,7 @@ function ComponentSettings({
   row,
   column,
   component,
+  pages,
   onComponentProps,
   onMoveComponent,
   onDeleteComponent,
@@ -450,7 +454,7 @@ function ComponentSettings({
   return (
     <>
       <Group label="เนื้อหา">
-        <ComponentFields component={component} patch={patch} />
+        <ComponentFields component={component} patch={patch} pages={pages} />
       </Group>
 
       <Group label="จัดการ">
@@ -490,9 +494,11 @@ function ComponentSettings({
 function ComponentFields({
   component,
   patch,
+  pages,
 }: {
   component: ComponentInstance;
   patch: (p: Record<string, unknown>) => void;
+  pages: BuilderPageInfo[];
 }) {
   switch (component.type) {
     case "heading": {
@@ -620,15 +626,14 @@ function ComponentFields({
                     <Trash2 size={13} />
                   </button>
                 </div>
-                <input
+                <LinkField
                   value={b.href}
-                  onChange={(e) => {
+                  onChange={(href) => {
                     const buttons = [...p.buttons];
-                    buttons[i] = { ...buttons[i], href: e.target.value };
+                    buttons[i] = { ...buttons[i], href };
                     setButtons(buttons);
                   }}
-                  placeholder="ลิงก์ เช่น /contact หรือ https://…"
-                  className="block w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                  pages={pages}
                 />
                 <div className="grid grid-cols-2 gap-1.5">
                   {(
@@ -934,37 +939,41 @@ function ComponentFields({
           <div className="space-y-1.5">
             <span className="text-sm font-medium">เมนู</span>
             {p.links.map((link, i) => (
-              <div key={i} className="flex gap-1.5">
-                <input
-                  value={link.label}
-                  onChange={(e) => {
-                    const links = [...p.links];
-                    links[i] = { ...links[i], label: e.target.value };
-                    patch({ links });
-                  }}
-                  placeholder="ชื่อเมนู"
-                  className="w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
-                />
-                <input
+              <div
+                key={i}
+                className="space-y-1.5 rounded-md border border-border p-2.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <input
+                    value={link.label}
+                    onChange={(e) => {
+                      const links = [...p.links];
+                      links[i] = { ...links[i], label: e.target.value };
+                      patch({ links });
+                    }}
+                    placeholder="ชื่อเมนู"
+                    className="w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                  />
+                  <button
+                    type="button"
+                    aria-label="ลบเมนูนี้"
+                    onClick={() =>
+                      patch({ links: p.links.filter((_, j) => j !== i) })
+                    }
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-text-muted hover:text-danger"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                <LinkField
                   value={link.href}
-                  onChange={(e) => {
+                  onChange={(href) => {
                     const links = [...p.links];
-                    links[i] = { ...links[i], href: e.target.value };
+                    links[i] = { ...links[i], href };
                     patch({ links });
                   }}
-                  placeholder="ลิงก์"
-                  className="w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                  pages={pages}
                 />
-                <button
-                  type="button"
-                  aria-label="ลบเมนูนี้"
-                  onClick={() =>
-                    patch({ links: p.links.filter((_, j) => j !== i) })
-                  }
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-text-muted hover:text-danger"
-                >
-                  <Trash2 size={13} />
-                </button>
               </div>
             ))}
             <button
@@ -1019,6 +1028,62 @@ function ComponentFields({
         </p>
       );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Link field — เลือกหน้าในเว็บ (เก็บเป็น "page:{id}") หรือพิมพ์ลิงก์เอง
+// ---------------------------------------------------------------------------
+
+const CUSTOM_LINK = "__custom__";
+
+function LinkField({
+  value,
+  onChange,
+  pages,
+}: {
+  value: string;
+  onChange: (href: string) => void;
+  pages: BuilderPageInfo[];
+}) {
+  const pageId = parsePageLink(value);
+  const isCustom = pageId === null;
+  // หน้าที่เคยเลือกไว้แต่ถูกลบไปแล้ว — คงตัวเลือกไว้ให้เห็นว่าลิงก์เสีย
+  const missing = pageId !== null && !pages.some((p) => p.id === pageId);
+  return (
+    <div className="space-y-1.5">
+      <select
+        value={isCustom ? CUSTOM_LINK : value}
+        onChange={(e) =>
+          onChange(e.target.value === CUSTOM_LINK ? "#" : e.target.value)
+        }
+        aria-label="ลิงก์ไปที่"
+        className="block w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+      >
+        {pages.length > 0 ? (
+          <optgroup label="หน้าในเว็บนี้">
+            {pages.map((pg) => (
+              <option key={pg.id} value={pageLinkValue(pg.id)}>
+                {pg.name}
+                {pg.isHome ? " (หน้าแรก)" : ""}
+              </option>
+            ))}
+          </optgroup>
+        ) : null}
+        {missing ? (
+          <option value={value}>หน้าเดิมถูกลบแล้ว — เลือกใหม่</option>
+        ) : null}
+        <option value={CUSTOM_LINK}>ใส่ลิงก์เอง (เว็บอื่น / ภายนอก)</option>
+      </select>
+      {isCustom ? (
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="ลิงก์ เช่น https://… หรือ #ส่วนในหน้า"
+          className="block w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+        />
+      ) : null}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
