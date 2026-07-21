@@ -8,8 +8,8 @@ import { parseFooterRow, parseHeaderRow } from "@/lib/serialize";
 import type { ComponentType, RowInstance } from "@/lib/page/types";
 import { publishWebsiteById } from "./publish";
 
-// เมนูหลัก = links ของ navbar ใน headerRow, เมนูส่วนท้าย = links ของ siteFooter
-// ใน footerRow — แก้ที่นี่คือแก้ข้อมูลเดียวกับที่ builder แก้ (ฉบับร่าง)
+// หน้า "ส่วนหัว/ส่วนท้าย" ใน CMS — แก้ props ของ navbar (headerRow) และ
+// siteFooter (footerRow) ซึ่งเป็นข้อมูลเดียวกับที่ builder แก้ (ฉบับร่าง)
 
 const linksSchema = z
   .array(
@@ -20,22 +20,31 @@ const linksSchema = z
   )
   .max(10, "เมนูได้สูงสุด 10 อัน");
 
+const chromeSchema = z.object({
+  headerBrand: z.string().min(1, "กรอกชื่อแบรนด์ของส่วนหัว").max(60),
+  ctaLabel: z.string().max(30, "ข้อความปุ่มยาวเกินไป"),
+  ctaHref: z.string().max(500),
+  footerBrand: z.string().min(1, "กรอกชื่อแบรนด์ของส่วนท้าย").max(60),
+  footerDescription: z.string().max(300, "คำอธิบายยาวเกินไป"),
+  footerCopyright: z.string().max(120, "ข้อความลิขสิทธิ์ยาวเกินไป"),
+});
+
 export interface MenuActionState {
   error?: string;
   saved?: boolean;
   published?: boolean;
 }
 
-/** ใส่ links ให้ component ตัวแรกของ type ที่ระบุในแถว — คืน false ถ้าไม่พบ */
-function setComponentLinks(
+/** merge props ให้ component ตัวแรกของ type ที่ระบุในแถว — คืน false ถ้าไม่พบ */
+function patchComponent(
   row: RowInstance,
   type: ComponentType,
-  links: Array<{ label: string; href: string }>,
+  patch: Record<string, unknown>,
 ): boolean {
   for (const col of row.columns) {
     for (const comp of col.components) {
       if (comp.type === type) {
-        comp.props = { ...comp.props, links };
+        comp.props = { ...comp.props, ...patch };
         return true;
       }
     }
@@ -43,7 +52,7 @@ function setComponentLinks(
   return false;
 }
 
-export async function saveMenus(
+export async function saveSiteChrome(
   _prev: MenuActionState,
   formData: FormData,
 ): Promise<MenuActionState> {
@@ -63,6 +72,17 @@ export async function saveMenus(
     };
   }
 
+  const parsed = chromeSchema.safeParse({
+    headerBrand: String(formData.get("headerBrand") ?? "").trim(),
+    ctaLabel: String(formData.get("ctaLabel") ?? "").trim(),
+    ctaHref: String(formData.get("ctaHref") ?? "").trim(),
+    footerBrand: String(formData.get("footerBrand") ?? "").trim(),
+    footerDescription: String(formData.get("footerDescription") ?? "").trim(),
+    footerCopyright: String(formData.get("footerCopyright") ?? "").trim(),
+  });
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const d = parsed.data;
+
   const site = await db.website.findUnique({
     where: { id: websiteId },
     select: { id: true, ownerId: true, headerRow: true, footerRow: true },
@@ -74,13 +94,25 @@ export async function saveMenus(
   const header = parseHeaderRow(site.headerRow);
   const footer = parseFooterRow(site.footerRow);
 
-  if (!setComponentLinks(header, "navbar", mainLinks)) {
+  const headerOk = patchComponent(header, "navbar", {
+    brandName: d.headerBrand,
+    links: mainLinks,
+    ctaLabel: d.ctaLabel || undefined,
+    ctaHref: d.ctaLabel ? d.ctaHref || "#" : undefined,
+  });
+  if (!headerOk) {
     return {
       error:
         "ส่วนหัวของเว็บนี้ไม่มีแถบเมนู — เพิ่มแถบเมนูในตัวแก้ไขส่วนหัวก่อน",
     };
   }
-  if (!setComponentLinks(footer, "siteFooter", footerLinks)) {
+  const footerOk = patchComponent(footer, "siteFooter", {
+    brandName: d.footerBrand,
+    description: d.footerDescription || undefined,
+    copyright: d.footerCopyright || undefined,
+    links: footerLinks,
+  });
+  if (!footerOk) {
     return {
       error:
         "ส่วนท้ายของเว็บนี้ไม่มีชิ้นส่วนส่วนท้าย — เพิ่มในตัวแก้ไขส่วนท้ายก่อน",

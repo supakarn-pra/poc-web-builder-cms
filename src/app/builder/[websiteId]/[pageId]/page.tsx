@@ -33,6 +33,11 @@ export default async function BuilderPage({
           select: { id: true, name: true, slug: true, isHome: true },
           orderBy: [{ isHome: "desc" }, { createdAt: "asc" }],
         },
+        posts: {
+          where: { status: "PUBLISHED" },
+          select: { id: true, title: true },
+          orderBy: { publishedAt: "desc" },
+        },
       },
     });
     if (!website || (website.ownerId !== user.id && user.role !== "ADMIN")) {
@@ -52,6 +57,7 @@ export default async function BuilderPage({
         initialRow={row}
         backPageId={website.pages[0]?.id ?? null}
         pages={website.pages}
+        posts={website.posts}
         globalStyle={parseGlobalStyle(website.globalStyle)}
       />
     );
@@ -72,6 +78,11 @@ export default async function BuilderPage({
           pages: {
             select: { id: true, name: true, slug: true, isHome: true },
             orderBy: [{ isHome: "desc" }, { createdAt: "asc" }],
+          },
+          posts: {
+            where: { status: "PUBLISHED" },
+            select: { id: true, title: true },
+            orderBy: { publishedAt: "desc" },
           },
         },
       },
@@ -95,6 +106,7 @@ export default async function BuilderPage({
       pageSlug={page.isHome ? "" : page.slug}
       websiteName={page.website.name}
       pages={page.website.pages}
+      posts={page.website.posts}
       initialRows={parseRows(page.sections)}
       chromeHeader={parseHeaderRow(page.website.headerRow)}
       chromeFooter={parseFooterRow(page.website.footerRow)}

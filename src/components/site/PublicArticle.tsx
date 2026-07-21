@@ -34,17 +34,30 @@ export async function PublicArticle({
   const globalStyle = parseGlobalStyle(site.globalStyle);
   const chrome = siteChrome(site, mode);
 
-  // ให้เมนู/ปุ่มใน header-footer resolve ลิงก์ภายใน "page:{id}" ได้เหมือนหน้าปกติ
-  const sitePages = await db.page.findMany({
-    where: { websiteId: site.id },
-    select: { id: true, slug: true, isHome: true },
-  });
+  // ให้เมนู/ปุ่มใน header-footer resolve ลิงก์ภายใน "page:{id}" / "post:{id}"
+  // ได้เหมือนหน้าปกติ
+  const [sitePages, sitePosts] = await Promise.all([
+    db.page.findMany({
+      where: { websiteId: site.id },
+      select: { id: true, slug: true, isHome: true },
+    }),
+    db.blogPost.findMany({
+      where: { websiteId: site.id, status: "PUBLISHED" },
+      select: { id: true, title: true, slug: true },
+    }),
+  ]);
   const siteData = {
     websiteId: site.id,
     basePath,
     blogBasePath: `${basePath}/blog`,
     pages: sitePages,
-    posts: [],
+    posts: sitePosts.map((p) => ({
+      ...p,
+      excerpt: null,
+      coverImageUrl: null,
+      publishedAt: null,
+      categoryName: null,
+    })),
   };
 
   let contentHtml = "";

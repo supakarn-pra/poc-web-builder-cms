@@ -35,7 +35,9 @@ export interface SiteData {
   blogBasePath: string; // เช่น /blog หรือ /aaa/blog
   /** หน้าทั้งหมดของเว็บ — ใช้ resolve ลิงก์ภายใน "page:{id}" (ดู lib/page/links.ts) */
   pages: Array<{ id: string; slug: string; isHome: boolean }>;
+  /** บทความที่เผยแพร่ — ใช้ทั้ง blogList และ resolve ลิงก์ "post:{id}" */
   posts: Array<{
+    id: string;
     title: string;
     slug: string;
     excerpt: string | null;

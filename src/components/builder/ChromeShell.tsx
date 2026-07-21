@@ -7,7 +7,7 @@ import { Canvas } from "./Canvas";
 import { SettingsPanel } from "./SettingsPanel";
 import { DevicePreviewSwitch, type DeviceMode } from "./DevicePreviewSwitch";
 import type { SaveStatus } from "./BuilderTopbar";
-import type { BuilderPageInfo, Selection } from "./BuilderShell";
+import type { BuilderPageInfo, BuilderPostInfo, Selection } from "./BuilderShell";
 import type {
   ColumnInstance,
   ComponentInstance,
@@ -32,6 +32,7 @@ interface Props {
   initialRow: RowInstance;
   backPageId: string | null;
   pages: BuilderPageInfo[];
+  posts: BuilderPostInfo[];
   globalStyle: GlobalStyle;
 }
 
@@ -46,6 +47,7 @@ export function ChromeShell({
   initialRow,
   backPageId,
   pages,
+  posts,
   globalStyle,
 }: Props) {
   const [device, setDevice] = useState<DeviceMode>("desktop");
@@ -152,6 +154,7 @@ export function ChromeShell({
         <SettingsPanel
           rows={[row]}
           pages={pages}
+          posts={posts}
           selection={selection}
           selectedRow={row}
           onSelect={setSelection}

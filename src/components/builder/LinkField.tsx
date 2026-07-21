@@ -1,6 +1,11 @@
 "use client";
 
-import { pageLinkValue, parsePageLink } from "@/lib/page/links";
+import {
+  pageLinkValue,
+  parsePageLink,
+  parsePostLink,
+  postLinkValue,
+} from "@/lib/page/links";
 
 /** ข้อมูลหน้าเท่าที่ตัวเลือกลิงก์ต้องใช้ (ตรงกับ BuilderPageInfo) */
 export interface LinkPageOption {
@@ -9,25 +14,36 @@ export interface LinkPageOption {
   isHome: boolean;
 }
 
+/** บทความที่เผยแพร่แล้ว — ให้เมนู/ปุ่มลิงก์ไปบทความได้ */
+export interface LinkPostOption {
+  id: string;
+  title: string;
+}
+
 const CUSTOM_LINK = "__custom__";
 
 /**
- * ตัวเลือกลิงก์ — เลือกหน้าในเว็บ (เก็บเป็น "page:{id}") หรือพิมพ์ลิงก์เอง
- * ใช้ทั้งแผงตั้งค่าปุ่ม/เมนูใน builder และหน้าจัดการเมนูเว็บไซต์
+ * ตัวเลือกลิงก์ — เลือกหน้าในเว็บ ("page:{id}") บทความ ("post:{id}")
+ * หรือพิมพ์ลิงก์เอง ใช้ทั้งแผงตั้งค่าใน builder และหน้าส่วนหัว/ส่วนท้าย
  */
 export function LinkField({
   value,
   onChange,
   pages,
+  posts = [],
 }: {
   value: string;
   onChange: (href: string) => void;
   pages: LinkPageOption[];
+  posts?: LinkPostOption[];
 }) {
   const pageId = parsePageLink(value);
-  const isCustom = pageId === null;
-  // หน้าที่เคยเลือกไว้แต่ถูกลบไปแล้ว — คงตัวเลือกไว้ให้เห็นว่าลิงก์เสีย
-  const missing = pageId !== null && !pages.some((p) => p.id === pageId);
+  const postId = parsePostLink(value);
+  const isCustom = pageId === null && postId === null;
+  // ปลายทางที่เคยเลือกไว้แต่ถูกลบ/เลิกเผยแพร่ — คงตัวเลือกไว้ให้เห็นว่าลิงก์เสีย
+  const missing =
+    (pageId !== null && !pages.some((p) => p.id === pageId)) ||
+    (postId !== null && !posts.some((p) => p.id === postId));
   return (
     <div className="space-y-1.5">
       <select
@@ -48,8 +64,17 @@ export function LinkField({
             ))}
           </optgroup>
         ) : null}
+        {posts.length > 0 ? (
+          <optgroup label="บทความ">
+            {posts.map((p) => (
+              <option key={p.id} value={postLinkValue(p.id)}>
+                {p.title}
+              </option>
+            ))}
+          </optgroup>
+        ) : null}
         {missing ? (
-          <option value={value}>หน้าเดิมถูกลบแล้ว — เลือกใหม่</option>
+          <option value={value}>ปลายทางเดิมถูกลบแล้ว — เลือกใหม่</option>
         ) : null}
         <option value={CUSTOM_LINK}>ใส่ลิงก์เอง (เว็บอื่น / ภายนอก)</option>
       </select>

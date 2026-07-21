@@ -533,6 +533,8 @@ const navbarSchema = z.object({
   brandName: z.string(),
   links: z.array(z.object({ label: z.string(), href: z.string() })),
   ctaLabel: z.string().optional(),
+  /** ลิงก์ของปุ่มด้านขวา — รองรับ "page:{id}" / "post:{id}" เหมือนลิงก์อื่น */
+  ctaHref: z.string().optional(),
 });
 export type NavbarProps = z.infer<typeof navbarSchema>;
 
@@ -566,7 +568,7 @@ const navbarDef: ComponentDefinition<NavbarProps> = {
       </nav>
       {props.ctaLabel ? (
         <a
-          href="#"
+          href={resolveHref(props.ctaHref ?? "#", siteData)}
           className="inline-flex items-center rounded-md bg-[color:var(--brand-primary)] px-4 py-2 text-sm text-white"
         >
           {props.ctaLabel}

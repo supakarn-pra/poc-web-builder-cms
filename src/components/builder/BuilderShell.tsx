@@ -26,6 +26,12 @@ export interface BuilderPageInfo {
   isHome: boolean;
 }
 
+/** บทความที่เผยแพร่ — ใช้เป็นตัวเลือกลิงก์ (ดู LinkField) */
+export interface BuilderPostInfo {
+  id: string;
+  title: string;
+}
+
 export type Selection =
   | { kind: "row"; rowId: string }
   | { kind: "column"; rowId: string; colId: string }
@@ -38,6 +44,7 @@ interface Props {
   pageSlug: string;
   websiteName: string;
   pages: BuilderPageInfo[];
+  posts: BuilderPostInfo[];
   initialRows: RowInstance[];
   /** ส่วนหัว/ท้ายของเว็บไซต์ — แสดงแบบล็อกใน canvas, แก้ผ่าน editor แยก */
   chromeHeader: RowInstance;
@@ -79,6 +86,7 @@ export function BuilderShell({
   pageSlug,
   websiteName,
   pages,
+  posts,
   initialRows,
   chromeHeader,
   chromeFooter,
@@ -399,6 +407,7 @@ export function BuilderShell({
         <SettingsPanel
           rows={rows}
           pages={pages}
+          posts={posts}
           selection={selection}
           selectedRow={selectedRow}
           onSelect={setSelection}

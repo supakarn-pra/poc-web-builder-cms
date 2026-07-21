@@ -45,7 +45,7 @@ import {
   type RowInstance,
   type RowStyle,
 } from "@/lib/page/types";
-import { LinkField } from "./LinkField";
+import { LinkField, type LinkPostOption } from "./LinkField";
 import type { BuilderPageInfo, Selection } from "./BuilderShell";
 import { t } from "@/lib/messages";
 
@@ -53,6 +53,8 @@ interface Props {
   rows: RowInstance[];
   /** หน้าทั้งหมดของเว็บ — ให้ปุ่ม/เมนูเลือกลิงก์ไปหน้าในเว็บได้ */
   pages: BuilderPageInfo[];
+  /** บทความที่เผยแพร่ — ให้ปุ่ม/เมนูลิงก์ไปบทความได้ */
+  posts: LinkPostOption[];
   selection: Selection;
   selectedRow: RowInstance | null;
   onSelect: (sel: Selection) => void;
@@ -439,6 +441,7 @@ function ComponentSettings({
   column,
   component,
   pages,
+  posts,
   onComponentProps,
   onMoveComponent,
   onDeleteComponent,
@@ -454,7 +457,12 @@ function ComponentSettings({
   return (
     <>
       <Group label="เนื้อหา">
-        <ComponentFields component={component} patch={patch} pages={pages} />
+        <ComponentFields
+          component={component}
+          patch={patch}
+          pages={pages}
+          posts={posts}
+        />
       </Group>
 
       <Group label="จัดการ">
@@ -495,10 +503,12 @@ function ComponentFields({
   component,
   patch,
   pages,
+  posts,
 }: {
   component: ComponentInstance;
   patch: (p: Record<string, unknown>) => void;
   pages: BuilderPageInfo[];
+  posts: LinkPostOption[];
 }) {
   switch (component.type) {
     case "heading": {
@@ -634,6 +644,7 @@ function ComponentFields({
                     setButtons(buttons);
                   }}
                   pages={pages}
+                  posts={posts}
                 />
                 <div className="grid grid-cols-2 gap-1.5">
                   {(
@@ -973,6 +984,7 @@ function ComponentFields({
                     patch({ links });
                   }}
                   pages={pages}
+                  posts={posts}
                 />
               </div>
             ))}
@@ -991,6 +1003,17 @@ function ComponentFields({
             value={p.ctaLabel ?? ""}
             onChange={(e) => patch({ ctaLabel: e.target.value || undefined })}
           />
+          {p.ctaLabel ? (
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium">ลิงก์ของปุ่มด้านขวา</span>
+              <LinkField
+                value={p.ctaHref ?? "#"}
+                onChange={(ctaHref) => patch({ ctaHref })}
+                pages={pages}
+                posts={posts}
+              />
+            </div>
+          ) : null}
         </>
       );
     }

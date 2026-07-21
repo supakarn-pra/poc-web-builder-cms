@@ -100,6 +100,7 @@ export async function PublicSitePage({
       orderBy: { publishedAt: "desc" },
       take: 24,
       select: {
+        id: true,
         title: true,
         slug: true,
         excerpt: true,
@@ -144,6 +145,7 @@ export async function PublicSitePage({
     blogBasePath: `${basePath}/blog`,
     pages: sitePages,
     posts: posts.map((p) => ({
+      id: p.id,
       title: p.title,
       slug: p.slug,
       excerpt: p.excerpt,

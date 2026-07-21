@@ -32,6 +32,12 @@ export const pageLayouts: PageLayout[] = [
     description: "ข้อมูลติดต่อ + แบบฟอร์ม",
     rows: ["contact"],
   },
+  {
+    id: "blog",
+    label: "หน้ารวมบทความ",
+    description: "แสดงบทความที่เผยแพร่ทั้งหมด อัปเดตให้อัตโนมัติ",
+    rows: ["blog-list"],
+  },
 ];
 
 export function getPageLayout(id: string): PageLayout | undefined {

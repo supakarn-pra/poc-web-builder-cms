@@ -72,6 +72,7 @@ const MOCK_SITE_DATA: SiteData = {
   pages: [],
   posts: [
     {
+      id: "preview-1",
       title: "ตัวอย่างบทความที่ 1",
       slug: "preview-1",
       excerpt: "คำโปรยของบทความจะแสดงตรงนี้ เมื่อเผยแพร่บทความจริง",
@@ -80,6 +81,7 @@ const MOCK_SITE_DATA: SiteData = {
       categoryName: "ตัวอย่าง",
     },
     {
+      id: "preview-2",
       title: "ตัวอย่างบทความที่ 2",
       slug: "preview-2",
       excerpt: "รายการนี้จะถูกแทนที่ด้วยบทความจริงจากเมนู บทความ",
@@ -88,6 +90,7 @@ const MOCK_SITE_DATA: SiteData = {
       categoryName: null,
     },
     {
+      id: "preview-3",
       title: "ตัวอย่างบทความที่ 3",
       slug: "preview-3",
       excerpt: null,

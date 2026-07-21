@@ -12,7 +12,7 @@ export const t = {
     pages: "หน้าเว็บ",
     posts: "บทความ",
     media: "รูปภาพ",
-    menu: "เมนูเว็บไซต์",
+    menu: "ส่วนหัว/ส่วนท้าย",
     popups: "Pop-up",
     settings: "ตั้งค่า",
   },
