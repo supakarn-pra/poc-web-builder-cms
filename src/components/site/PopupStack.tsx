@@ -1,14 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { PopupDialog, type PopupContent } from "./PopupDialog";
 
-export interface SitePopup {
-  id: string;
-  title: string | null;
-  text: string;
-  imageUrl: string | null;
-}
+export type SitePopup = PopupContent;
 
 const STORAGE_PREFIX = "popup-hidden:";
 
@@ -44,7 +39,7 @@ export function PopupStack({ popups }: { popups: SitePopup[] }) {
   if (!visible || visible.length === 0) return null;
 
   function close(popup: SitePopup) {
-    if (dontShowToday[popup.id]) {
+    if (popup.allowHideToday && dontShowToday[popup.id]) {
       try {
         localStorage.setItem(STORAGE_PREFIX + popup.id, todayKey());
       } catch {
@@ -59,72 +54,21 @@ export function PopupStack({ popups }: { popups: SitePopup[] }) {
       {visible.map((popup, i) => (
         <div
           key={popup.id}
-          role="dialog"
-          aria-modal="true"
-          aria-label={popup.title ?? "ประกาศ"}
-          className="absolute w-full max-w-md overflow-hidden rounded-lg border border-border bg-surface shadow-[var(--shadow-md)]"
+          className="absolute flex w-full justify-center px-4"
           style={{
             // ซ้อนเหลื่อมกันตามลำดับ — อันแรก (ลำดับน้อยสุด) อยู่บนสุด
             transform: `translate(${i * 14}px, ${i * 14}px)`,
             zIndex: 90 - i,
           }}
         >
-          <button
-            type="button"
-            onClick={() => close(popup)}
-            aria-label="ปิด"
-            className="absolute right-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-md bg-black/30 text-white hover:bg-black/50"
-          >
-            <X size={16} />
-          </button>
-
-          {popup.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={popup.imageUrl}
-              alt=""
-              className="max-h-72 w-full object-cover"
-            />
-          ) : null}
-
-          {popup.title || popup.text ? (
-            <div className="space-y-2 p-5">
-              {popup.title ? (
-                <h2 className="font-display text-lg font-semibold">
-                  {popup.title}
-                </h2>
-              ) : null}
-              {popup.text ? (
-                <p className="whitespace-pre-line text-sm text-text-muted">
-                  {popup.text}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="flex items-center justify-between gap-3 border-t border-border px-5 py-3">
-            <label className="flex items-center gap-2 text-xs text-text-muted">
-              <input
-                type="checkbox"
-                checked={!!dontShowToday[popup.id]}
-                onChange={(e) =>
-                  setDontShowToday((cur) => ({
-                    ...cur,
-                    [popup.id]: e.target.checked,
-                  }))
-                }
-                className="h-4 w-4 rounded border-border"
-              />
-              ไม่ต้องแสดงอีกในวันนี้
-            </label>
-            <button
-              type="button"
-              onClick={() => close(popup)}
-              className="rounded-md bg-[color:var(--brand-primary)] px-4 py-1.5 text-sm text-white hover:bg-[color:var(--brand-primary-hover)]"
-            >
-              ปิด
-            </button>
-          </div>
+          <PopupDialog
+            popup={popup}
+            hideToday={!!dontShowToday[popup.id]}
+            onHideTodayChange={(v) =>
+              setDontShowToday((cur) => ({ ...cur, [popup.id]: v }))
+            }
+            onClose={() => close(popup)}
+          />
         </div>
       ))}
     </div>

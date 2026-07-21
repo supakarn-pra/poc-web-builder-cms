@@ -151,6 +151,8 @@ model Popup {
   pageIds   String   @default("ALL")
   sortIndex Int      @default(0) // popup หลายตัวซ้อนกันตามลำดับนี้ (น้อย = อยู่บนสุด)
   enabled   Boolean  @default(true)
+  // แสดงช่องติ๊ก "ไม่ต้องแสดงอีกในวันนี้" ให้คนดูไหม
+  allowHideToday Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

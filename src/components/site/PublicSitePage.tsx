@@ -123,6 +123,7 @@ export async function PublicSitePage({
         text: true,
         imageUrl: true,
         pageIds: true,
+        allowHideToday: true,
       },
     }),
   ]);
@@ -138,7 +139,13 @@ export async function PublicSitePage({
         return false;
       }
     })
-    .map(({ id, title, text, imageUrl }) => ({ id, title, text, imageUrl }));
+    .map(({ id, title, text, imageUrl, allowHideToday }) => ({
+      id,
+      title,
+      text,
+      imageUrl,
+      allowHideToday,
+    }));
   const siteData = {
     websiteId: site.id,
     basePath,

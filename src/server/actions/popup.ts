@@ -17,8 +17,8 @@ const popupSchema = z.object({
   imageUrl: z.string().max(1000),
   target: z.enum(["ALL", "PAGES"]),
   pageIds: z.array(z.string().min(1)).max(50),
-  sortIndex: z.coerce.number().int().min(0).max(999),
   enabled: z.boolean(),
+  allowHideToday: z.boolean(),
 });
 
 async function requireWebsite(websiteId: string) {
@@ -31,7 +31,7 @@ async function requireWebsite(websiteId: string) {
   return site;
 }
 
-/** สร้าง/แก้ไข popup — popupId ว่าง = สร้างใหม่ */
+/** สร้าง/แก้ไข popup — popupId ว่าง = สร้างใหม่ (ต่อท้ายลำดับเสมอ) */
 export async function savePopup(
   _prev: PopupActionState,
   formData: FormData,
@@ -52,8 +52,8 @@ export async function savePopup(
     imageUrl: String(formData.get("imageUrl") ?? "").trim(),
     target: formData.get("target"),
     pageIds,
-    sortIndex: formData.get("sortIndex") ?? 0,
     enabled: formData.get("enabled") === "on",
+    allowHideToday: formData.get("allowHideToday") === "on",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -73,8 +73,8 @@ export async function savePopup(
     text: d.text,
     imageUrl: d.imageUrl || null,
     pageIds: d.target === "ALL" ? "ALL" : JSON.stringify(d.pageIds),
-    sortIndex: d.sortIndex,
     enabled: d.enabled,
+    allowHideToday: d.allowHideToday,
   };
 
   if (popupId) {
@@ -87,7 +87,15 @@ export async function savePopup(
     }
     await db.popup.update({ where: { id: popupId }, data });
   } else {
-    await db.popup.create({ data: { ...data, websiteId: site.id } });
+    // ตัวใหม่ต่อท้ายลำดับ — ผู้ใช้ลากจัดเองในหน้า list
+    const last = await db.popup.findFirst({
+      where: { websiteId: site.id },
+      orderBy: { sortIndex: "desc" },
+      select: { sortIndex: true },
+    });
+    await db.popup.create({
+      data: { ...data, websiteId: site.id, sortIndex: (last?.sortIndex ?? -1) + 1 },
+    });
   }
 
   revalidatePath("/administrator/popups");
@@ -110,6 +118,51 @@ export async function deletePopup(
   if (!site) return { error: "ไม่พบเว็บไซต์" };
 
   await db.popup.delete({ where: { id: popupId } });
+  revalidatePath("/administrator/popups");
+  revalidatePath("/", "layout");
+  return { saved: true };
+}
+
+/** ลากจัดลำดับในหน้า list — sortIndex = ตำแหน่งใน array (เรียกตรงจาก client) */
+export async function reorderPopups(
+  websiteId: string,
+  orderedIds: string[],
+): Promise<PopupActionState> {
+  if (!Array.isArray(orderedIds) || orderedIds.length > 100) {
+    return { error: "ข้อมูลลำดับไม่ถูกต้อง" };
+  }
+  const site = await requireWebsite(websiteId);
+  if (!site) return { error: "ไม่พบเว็บไซต์" };
+
+  await db.$transaction(
+    orderedIds.map((id, i) =>
+      db.popup.updateMany({
+        // updateMany + เช็ค websiteId — กันยัด id ของเว็บอื่นเข้ามา
+        where: { id, websiteId: site.id },
+        data: { sortIndex: i },
+      }),
+    ),
+  );
+  revalidatePath("/administrator/popups");
+  revalidatePath("/", "layout");
+  return { saved: true };
+}
+
+/** switch เปิด/ปิดจากหน้า list (เรียกตรงจาก client) */
+export async function setPopupEnabled(
+  popupId: string,
+  enabled: boolean,
+): Promise<PopupActionState> {
+  const popup = await db.popup.findUnique({
+    where: { id: popupId },
+    select: { websiteId: true },
+  });
+  if (!popup) return { error: "ไม่พบ Pop-up นี้" };
+
+  const site = await requireWebsite(popup.websiteId);
+  if (!site) return { error: "ไม่พบเว็บไซต์" };
+
+  await db.popup.update({ where: { id: popupId }, data: { enabled } });
   revalidatePath("/administrator/popups");
   revalidatePath("/", "layout");
   return { saved: true };

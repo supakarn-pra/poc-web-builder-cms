@@ -53,6 +53,7 @@ export default async function PopupsPage() {
             pageIds: p.pageIds,
             sortIndex: p.sortIndex,
             enabled: p.enabled,
+            allowHideToday: p.allowHideToday,
           }))}
         />
       </div>
