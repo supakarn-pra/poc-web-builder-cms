@@ -26,7 +26,8 @@ const headingSchema = z.object({
 });
 export type HeadingProps = z.infer<typeof headingSchema>;
 
-const headingClass: Record<HeadingProps["level"], string> = {
+/** export ให้ inline editor ใน canvas ใช้สไตล์เดียวกับของจริง */
+export const headingClass: Record<HeadingProps["level"], string> = {
   1: "font-display text-4xl @3xl:text-5xl font-semibold leading-tight",
   2: "font-display text-3xl font-semibold",
   3: "font-display text-xl font-semibold",
@@ -52,25 +53,24 @@ const textSchema = z.object({
 });
 export type TextProps = z.infer<typeof textSchema>;
 
+/** export ให้ inline editor ใน canvas ใช้สไตล์เดียวกับของจริง */
+export function textClass(props: TextProps): string {
+  return [
+    "whitespace-pre-line leading-relaxed",
+    props.muted !== false ? "text-text-muted" : "text-text",
+    props.size === "sm" ? "text-sm" : props.size === "lg" ? "text-lg" : "",
+  ].join(" ");
+}
+
 const textDef: ComponentDefinition<TextProps> = {
   type: "text",
   label: "ข้อความ",
   schema: textSchema,
   defaultProps: () => ({
-    text: "พิมพ์ข้อความของคุณที่นี่ คลิกเพื่อแก้ไขได้ทันที",
+    text: "พิมพ์ข้อความของคุณที่นี่ ดับเบิลคลิกเพื่อแก้ได้ทันที",
     muted: true,
   }),
-  Render: ({ props }) => (
-    <p
-      className={[
-        "whitespace-pre-line leading-relaxed",
-        props.muted !== false ? "text-text-muted" : "text-text",
-        props.size === "sm" ? "text-sm" : props.size === "lg" ? "text-lg" : "",
-      ].join(" ")}
-    >
-      {props.text}
-    </p>
-  ),
+  Render: ({ props }) => <p className={textClass(props)}>{props.text}</p>,
 };
 
 // --- button ------------------------------------------------------------------

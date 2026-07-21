@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -10,11 +11,58 @@ import {
   rowClasses,
   rowInnerClasses,
 } from "@/lib/page/render";
-import { componentRegistry } from "@/lib/page/components/registry";
+import {
+  componentRegistry,
+  headingClass,
+  textClass,
+  type HeadingProps,
+  type TextProps,
+} from "@/lib/page/components/registry";
 import { toCssVariables } from "@/lib/globalStyle";
-import type { GlobalStyle, RowInstance, SiteData } from "@/lib/page/types";
+import { InlineTextEditor } from "./InlineTextEditor";
+import type {
+  ComponentInstance,
+  GlobalStyle,
+  RowInstance,
+  SiteData,
+} from "@/lib/page/types";
 import type { DeviceMode } from "./DevicePreviewSwitch";
 import type { Selection } from "./BuilderShell";
+
+/** เลือก tag/class ให้ตรงกับของจริงตอนแก้ inline (heading ตาม level, text = p) */
+function InlineComponentEditor({
+  component,
+  onCommit,
+  onCancel,
+}: {
+  component: ComponentInstance;
+  onCommit: (text: string) => void;
+  onCancel: () => void;
+}) {
+  if (component.type === "heading") {
+    const p = component.props as HeadingProps;
+    return (
+      <InlineTextEditor
+        tag={`h${p.level}` as "h1" | "h2" | "h3"}
+        className={headingClass[p.level]}
+        initial={p.text}
+        onCommit={onCommit}
+        onCancel={onCancel}
+      />
+    );
+  }
+  const p = component.props as TextProps;
+  return (
+    <InlineTextEditor
+      tag="p"
+      className={textClass(p)}
+      initial={p.text}
+      multiline
+      onCommit={onCommit}
+      onCancel={onCancel}
+    />
+  );
+}
 
 /** ตัวอย่างบทความใน canvas — ของจริงดึงจาก DB ตอน render หน้าเว็บ */
 const MOCK_SITE_DATA: SiteData = {
@@ -58,6 +106,13 @@ interface Props {
   rows: RowInstance[];
   selection: Selection;
   onSelect: (sel: Selection) => void;
+  /** แก้ props ของ component จากการแก้ข้อความ inline (ดับเบิลคลิก) */
+  onInlineEdit?: (
+    rowId: string,
+    colId: string,
+    compId: string,
+    patch: Record<string, unknown>,
+  ) => void;
   globalStyle: GlobalStyle;
   /** ส่วนหัว/ท้ายเว็บไซต์ — แสดงล็อกไว้ คลิกเพื่อไป editor แยก */
   chrome?: {
@@ -66,6 +121,8 @@ interface Props {
     websiteId: string;
   };
 }
+
+const INLINE_EDITABLE = new Set(["heading", "text"]);
 
 /** แถวส่วนหัว/ท้ายที่ล็อกไว้ใน canvas — hover เห็นคำอธิบาย คลิกไปแก้ใน editor แยก */
 function LockedChromeRow({
@@ -109,9 +166,12 @@ export function Canvas({
   rows,
   selection,
   onSelect,
+  onInlineEdit,
   globalStyle,
   chrome,
 }: Props) {
+  // component ที่กำลังแก้ข้อความ inline อยู่ (ดับเบิลคลิก heading/text)
+  const [editingId, setEditingId] = useState<string | null>(null);
   return (
     <div className="flex-1 min-w-0 overflow-y-auto bg-surface-muted p-6">
       <div
@@ -182,11 +242,15 @@ export function Canvas({
                         const compSelected =
                           selection?.kind === "component" &&
                           selection.compId === component.id;
+                        const editable =
+                          !!onInlineEdit && INLINE_EDITABLE.has(component.type);
+                        const isEditing = editingId === component.id;
                         return (
                           <div
                             key={component.id}
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (isEditing) return;
                               onSelect({
                                 kind: "component",
                                 rowId: row.id,
@@ -194,13 +258,24 @@ export function Canvas({
                                 compId: component.id,
                               });
                             }}
+                            onDoubleClick={(e) => {
+                              if (!editable) return;
+                              e.stopPropagation();
+                              setEditingId(component.id);
+                            }}
+                            title={
+                              editable && !isEditing
+                                ? "ดับเบิลคลิกเพื่อแก้ข้อความ"
+                                : undefined
+                            }
                             className={cn(
                               "relative w-full outline outline-1 outline-transparent hover:outline-[color:var(--brand-primary)]/40 rounded-sm",
                               compSelected &&
+                                !isEditing &&
                                 "outline-2 outline-[color:var(--brand-primary)]",
                             )}
                           >
-                            {compSelected ? (
+                            {compSelected && !isEditing ? (
                               <Chip
                                 text={
                                   componentRegistry[component.type]?.label ??
@@ -208,11 +283,27 @@ export function Canvas({
                                 }
                               />
                             ) : null}
-                            <ComponentView
-                              component={component}
-                              global={globalStyle}
-                              siteData={MOCK_SITE_DATA}
-                            />
+                            {isEditing ? (
+                              <InlineComponentEditor
+                                component={component}
+                                onCommit={(text) => {
+                                  onInlineEdit?.(
+                                    row.id,
+                                    col.id,
+                                    component.id,
+                                    { text },
+                                  );
+                                  setEditingId(null);
+                                }}
+                                onCancel={() => setEditingId(null)}
+                              />
+                            ) : (
+                              <ComponentView
+                                component={component}
+                                global={globalStyle}
+                                siteData={MOCK_SITE_DATA}
+                              />
+                            )}
                           </div>
                         );
                       })}
