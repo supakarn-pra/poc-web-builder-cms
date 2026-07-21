@@ -7,6 +7,7 @@ import {
   parseRows,
 } from "@/lib/serialize";
 import { PageRows } from "@/lib/page/render";
+import { PopupStack } from "./PopupStack";
 import { toCssVariables } from "@/lib/globalStyle";
 
 export type RenderMode = "published" | "draft";
@@ -93,7 +94,7 @@ export async function PublicSitePage({
   ];
   const globalStyle = parseGlobalStyle(site.globalStyle);
 
-  const [posts, sitePages] = await Promise.all([
+  const [posts, sitePages, popups] = await Promise.all([
     db.blogPost.findMany({
       where: { websiteId: site.id, status: "PUBLISHED" },
       orderBy: { publishedAt: "desc" },
@@ -112,7 +113,31 @@ export async function PublicSitePage({
       where: { websiteId: site.id },
       select: { id: true, slug: true, isHome: true },
     }),
+    db.popup.findMany({
+      where: { websiteId: site.id, enabled: true },
+      orderBy: [{ sortIndex: "asc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        text: true,
+        imageUrl: true,
+        pageIds: true,
+      },
+    }),
   ]);
+
+  // popup ที่ตั้งเป้าหมายเป็นหน้านี้ ("ALL" หรือรายชื่อ pageId ที่รวมหน้านี้)
+  const pagePopups = popups
+    .filter((p) => {
+      if (p.pageIds === "ALL") return true;
+      try {
+        const ids = JSON.parse(p.pageIds);
+        return Array.isArray(ids) && ids.includes(page.id);
+      } catch {
+        return false;
+      }
+    })
+    .map(({ id, title, text, imageUrl }) => ({ id, title, text, imageUrl }));
   const siteData = {
     websiteId: site.id,
     basePath,
@@ -136,6 +161,7 @@ export async function PublicSitePage({
         </div>
       ) : null}
       <PageRows rows={rows} global={globalStyle} siteData={siteData} />
+      <PopupStack popups={pagePopups} />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   BookOpen,
   Image as ImageIcon,
   Menu as MenuIcon,
+  Megaphone,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -23,6 +24,7 @@ const items = [
   { href: "/administrator/posts", label: t.nav.posts, Icon: BookOpen },
   { href: "/administrator/media", label: t.nav.media, Icon: ImageIcon },
   { href: "/administrator/menu", label: t.nav.menu, Icon: MenuIcon },
+  { href: "/administrator/popups", label: t.nav.popups, Icon: Megaphone },
   { href: "/administrator/settings", label: t.nav.settings, Icon: Settings },
 ];
 

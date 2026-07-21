@@ -203,6 +203,41 @@ export async function updateCustomDomain(
   return { saved: true };
 }
 
+// ── ลบเวอร์ชัน/Landing ──────────────────────────────────────────────────────
+// ลบทั้งเว็บ (หน้า บทความ รูป ฯลฯ cascade ตาม schema) — ห้ามลบตัวที่ใช้งานจริงอยู่
+
+export interface DeleteWebsiteState {
+  error?: string;
+}
+
+export async function deleteWebsite(
+  _prev: DeleteWebsiteState,
+  formData: FormData,
+): Promise<DeleteWebsiteState> {
+  const user = await requireUser();
+  const websiteId = String(formData.get("websiteId") ?? "");
+
+  const site = await db.website.findUnique({
+    where: { id: websiteId },
+    select: { id: true, ownerId: true, isPublic: true, parentId: true },
+  });
+  if (!site || (site.ownerId !== user.id && user.role !== "ADMIN")) {
+    return { error: "ไม่พบเวอร์ชันนี้" };
+  }
+  if (site.isPublic) {
+    return {
+      error:
+        "เวอร์ชันนี้ใช้งานเป็นเว็บจริงอยู่ — เลือกเวอร์ชันอื่นเป็นเว็บจริงก่อน แล้วค่อยลบ",
+    };
+  }
+
+  await db.website.delete({ where: { id: websiteId } });
+
+  revalidatePath("/administrator/websites");
+  revalidatePath("/", "layout");
+  return {};
+}
+
 // ── เลือกเวอร์ชันที่เสิร์ฟที่ root "/" ─────────────────────────────────────
 export async function setPublicWebsite(formData: FormData) {
   const user = await requireUser();

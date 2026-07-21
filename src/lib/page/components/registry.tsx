@@ -582,6 +582,10 @@ const siteFooterSchema = z.object({
   brandName: z.string(),
   description: z.string().optional(),
   copyright: z.string().optional(),
+  // เมนูส่วนท้าย — จัดการได้ที่หน้า "เมนูเว็บไซต์" ใน CMS
+  links: z
+    .array(z.object({ label: z.string(), href: z.string() }))
+    .optional(),
 });
 export type SiteFooterProps = z.infer<typeof siteFooterSchema>;
 
@@ -593,11 +597,24 @@ const siteFooterDef: ComponentDefinition<SiteFooterProps> = {
     brandName: "ชื่อแบรนด์ของคุณ",
     description: "คำอธิบายสั้น ๆ เกี่ยวกับธุรกิจหรือเว็บไซต์ของคุณ",
   }),
-  Render: ({ props }) => (
+  Render: ({ props, siteData }) => (
     <div className="space-y-3 py-10">
       <p className="font-display font-semibold">{props.brandName}</p>
       {props.description ? (
         <p className="max-w-md text-sm text-text-muted">{props.description}</p>
+      ) : null}
+      {props.links?.length ? (
+        <nav className="flex flex-wrap gap-x-5 gap-y-1 pt-1 text-sm">
+          {props.links.map((l, i) => (
+            <a
+              key={`${l.label}-${i}`}
+              href={resolveHref(l.href, siteData)}
+              className="text-text-muted hover:text-[color:var(--brand-primary)]"
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
       ) : null}
       <p className="pt-4 text-xs text-text-subtle">
         {props.copyright ?? `© ${props.brandName}`}
