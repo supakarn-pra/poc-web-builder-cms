@@ -4,6 +4,7 @@ import type { ComponentType, GlobalStyle, SiteData } from "../types";
 import { ContactFormClient } from "./ContactFormClient";
 import { GallerySlider } from "./GallerySlider";
 import { StatNumber } from "./StatNumber";
+import { resolveHref } from "../links";
 
 /**
  * Component registry — ชิ้นส่วนที่วางใน column ได้
@@ -136,7 +137,7 @@ const buttonDef: ComponentDefinition<ButtonProps> = {
     align: "inherit",
     buttons: [{ label: "เริ่มใช้งาน", href: "#", variant: "solid" }],
   }),
-  Render: ({ props }) => {
+  Render: ({ props, siteData }) => {
     const p = normalizeButtonProps(props as Record<string, unknown>);
     const align = p.align ?? "inherit";
     return (
@@ -150,7 +151,7 @@ const buttonDef: ComponentDefinition<ButtonProps> = {
         {p.buttons.map((b, i) => (
           <a
             key={i}
-            href={b.href}
+            href={resolveHref(b.href, siteData)}
             className={`inline-flex items-center rounded-md px-5 py-2.5 ${buttonVariantClass[b.variant ?? "solid"]}`}
           >
             {b.label}
@@ -532,6 +533,8 @@ const navbarSchema = z.object({
   brandName: z.string(),
   links: z.array(z.object({ label: z.string(), href: z.string() })),
   ctaLabel: z.string().optional(),
+  /** ลิงก์ของปุ่มด้านขวา — รองรับ "page:{id}" / "post:{id}" เหมือนลิงก์อื่น */
+  ctaHref: z.string().optional(),
 });
 export type NavbarProps = z.infer<typeof navbarSchema>;
 
@@ -547,7 +550,7 @@ const navbarDef: ComponentDefinition<NavbarProps> = {
       { label: "ติดต่อ", href: "#" },
     ],
   }),
-  Render: ({ props }) => (
+  Render: ({ props, siteData }) => (
     <div className="flex h-16 items-center justify-between">
       <span className="font-display text-lg font-semibold">
         {props.brandName}
@@ -556,7 +559,7 @@ const navbarDef: ComponentDefinition<NavbarProps> = {
         {props.links.map((l) => (
           <a
             key={l.label}
-            href={l.href}
+            href={resolveHref(l.href, siteData)}
             className="hover:text-[color:var(--brand-primary)]"
           >
             {l.label}
@@ -565,7 +568,7 @@ const navbarDef: ComponentDefinition<NavbarProps> = {
       </nav>
       {props.ctaLabel ? (
         <a
-          href="#"
+          href={resolveHref(props.ctaHref ?? "#", siteData)}
           className="inline-flex items-center rounded-md bg-[color:var(--brand-primary)] px-4 py-2 text-sm text-white"
         >
           {props.ctaLabel}
@@ -581,6 +584,10 @@ const siteFooterSchema = z.object({
   brandName: z.string(),
   description: z.string().optional(),
   copyright: z.string().optional(),
+  // เมนูส่วนท้าย — จัดการได้ที่หน้า "เมนูเว็บไซต์" ใน CMS
+  links: z
+    .array(z.object({ label: z.string(), href: z.string() }))
+    .optional(),
 });
 export type SiteFooterProps = z.infer<typeof siteFooterSchema>;
 
@@ -592,11 +599,24 @@ const siteFooterDef: ComponentDefinition<SiteFooterProps> = {
     brandName: "ชื่อแบรนด์ของคุณ",
     description: "คำอธิบายสั้น ๆ เกี่ยวกับธุรกิจหรือเว็บไซต์ของคุณ",
   }),
-  Render: ({ props }) => (
+  Render: ({ props, siteData }) => (
     <div className="space-y-3 py-10">
       <p className="font-display font-semibold">{props.brandName}</p>
       {props.description ? (
         <p className="max-w-md text-sm text-text-muted">{props.description}</p>
+      ) : null}
+      {props.links?.length ? (
+        <nav className="flex flex-wrap gap-x-5 gap-y-1 pt-1 text-sm">
+          {props.links.map((l, i) => (
+            <a
+              key={`${l.label}-${i}`}
+              href={resolveHref(l.href, siteData)}
+              className="text-text-muted hover:text-[color:var(--brand-primary)]"
+            >
+              {l.label}
+            </a>
+          ))}
+        </nav>
       ) : null}
       <p className="pt-4 text-xs text-text-subtle">
         {props.copyright ?? `© ${props.brandName}`}

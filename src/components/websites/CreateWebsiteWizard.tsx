@@ -17,22 +17,10 @@ const icons: Record<SiteType, typeof Layout> = {
   BLOG: Newspaper,
 };
 
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/[\s_]+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 30);
-}
-
 export function CreateWebsiteWizard() {
   const [step, setStep] = useState<1 | 2>(1);
   const [siteType, setSiteType] = useState<SiteType | null>(null);
   const [name, setName] = useState("");
-  const [subdomain, setSubdomain] = useState("");
-  const [subdomainTouched, setSubdomainTouched] = useState(false);
 
   const [state, action, pending] = useActionState<CreateWebsiteState, FormData>(
     createWebsite,
@@ -45,7 +33,7 @@ export function CreateWebsiteWizard() {
     <div className="mx-auto w-full max-w-2xl">
       {/* Step indicator */}
       <ol className="mb-8 flex items-center justify-center gap-3 text-sm">
-        {["เลือกประเภทเว็บไซต์", "ตั้งชื่อ"].map((label, i) => {
+        {["เลือกประเภทเว็บไซต์", "ตั้งชื่อเวอร์ชัน"].map((label, i) => {
           const n = (i + 1) as 1 | 2;
           const active = step === n;
           const done = step > n;
@@ -127,37 +115,17 @@ export function CreateWebsiteWizard() {
           <div className="rounded-lg border border-border bg-surface p-6 space-y-4">
             <Input
               name="name"
-              label="ชื่อเว็บไซต์"
-              placeholder="เช่น ร้านกาแฟบ้านสวน"
+              label="ชื่อเวอร์ชัน"
+              placeholder="เช่น เว็บหลัก, ปรับดีไซน์ใหม่, โปรปีใหม่"
               value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (!subdomainTouched) setSubdomain(slugify(e.target.value));
-              }}
+              onChange={(e) => setName(e.target.value)}
+              hint="ใช้แยกเวอร์ชันในระบบจัดการ — คนเข้าเว็บไม่เห็นชื่อนี้"
               required
             />
-            <div>
-              <Input
-                name="subdomain"
-                label="ที่อยู่เว็บไซต์ (Subdomain)"
-                placeholder="my-shop"
-                value={subdomain}
-                onChange={(e) => {
-                  setSubdomainTouched(true);
-                  setSubdomain(slugify(e.target.value));
-                }}
-                hint={
-                  subdomain
-                    ? `เว็บไซต์ของคุณจะอยู่ที่ ${subdomain}.platform.com`
-                    : "ใช้ a-z, 0-9 และขีดกลาง"
-                }
-                required
-              />
-            </div>
             {selectedTemplate ? (
               <p className="text-xs text-text-subtle">
-                Template: {selectedTemplate.label} · ระบบจะสร้าง{" "}
-                {selectedTemplate.pages.map((p) => p.name).join(", ")} ให้อัตโนมัติ
+                Template: {selectedTemplate.label} · ระบบจะสร้างหน้าเว็บให้:{" "}
+                {selectedTemplate.pages.map((p) => p.name).join(", ")}
               </p>
             ) : null}
           </div>
@@ -176,7 +144,7 @@ export function CreateWebsiteWizard() {
               ย้อนกลับ
             </Button>
             <Button type="submit" size="lg" disabled={pending}>
-              {pending ? "กำลังสร้างเว็บไซต์…" : "สร้างเว็บไซต์"}
+              {pending ? "กำลังสร้างเวอร์ชัน…" : "สร้างเวอร์ชัน"}
             </Button>
           </div>
         </form>

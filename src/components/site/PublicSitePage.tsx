@@ -7,6 +7,7 @@ import {
   parseRows,
 } from "@/lib/serialize";
 import { PageRows } from "@/lib/page/render";
+import { PopupStack } from "./PopupStack";
 import { toCssVariables } from "@/lib/globalStyle";
 
 export type RenderMode = "published" | "draft";
@@ -93,23 +94,65 @@ export async function PublicSitePage({
   ];
   const globalStyle = parseGlobalStyle(site.globalStyle);
 
-  const posts = await db.blogPost.findMany({
-    where: { websiteId: site.id, status: "PUBLISHED" },
-    orderBy: { publishedAt: "desc" },
-    take: 24,
-    select: {
-      title: true,
-      slug: true,
-      excerpt: true,
-      coverImageUrl: true,
-      publishedAt: true,
-      category: { select: { name: true } },
-    },
-  });
+  const [posts, sitePages, popups] = await Promise.all([
+    db.blogPost.findMany({
+      where: { websiteId: site.id, status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+      take: 24,
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        coverImageUrl: true,
+        publishedAt: true,
+        category: { select: { name: true } },
+      },
+    }),
+    // สำหรับ resolve ลิงก์ภายใน "page:{id}" ของปุ่ม/เมนู
+    db.page.findMany({
+      where: { websiteId: site.id },
+      select: { id: true, slug: true, isHome: true },
+    }),
+    db.popup.findMany({
+      where: { websiteId: site.id, enabled: true },
+      orderBy: [{ sortIndex: "asc" }, { createdAt: "asc" }],
+      select: {
+        id: true,
+        title: true,
+        text: true,
+        imageUrl: true,
+        pageIds: true,
+        allowHideToday: true,
+      },
+    }),
+  ]);
+
+  // popup ที่ตั้งเป้าหมายเป็นหน้านี้ ("ALL" หรือรายชื่อ pageId ที่รวมหน้านี้)
+  const pagePopups = popups
+    .filter((p) => {
+      if (p.pageIds === "ALL") return true;
+      try {
+        const ids = JSON.parse(p.pageIds);
+        return Array.isArray(ids) && ids.includes(page.id);
+      } catch {
+        return false;
+      }
+    })
+    .map(({ id, title, text, imageUrl, allowHideToday }) => ({
+      id,
+      title,
+      text,
+      imageUrl,
+      allowHideToday,
+    }));
   const siteData = {
     websiteId: site.id,
+    basePath,
     blogBasePath: `${basePath}/blog`,
+    pages: sitePages,
     posts: posts.map((p) => ({
+      id: p.id,
       title: p.title,
       slug: p.slug,
       excerpt: p.excerpt,
@@ -127,6 +170,7 @@ export async function PublicSitePage({
         </div>
       ) : null}
       <PageRows rows={rows} global={globalStyle} siteData={siteData} />
+      <PopupStack popups={pagePopups} />
     </div>
   );
 }

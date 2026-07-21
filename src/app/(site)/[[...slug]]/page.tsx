@@ -86,7 +86,7 @@ export default async function RootSite({
   if (path.kind === "article") {
     const post = await loadArticle(r.site.id, path.postSlug);
     if (!post) notFound();
-    return <PublicArticle site={r.site} post={post} />;
+    return <PublicArticle site={r.site} post={post} basePath={r.basePath} />;
   }
   return (
     <PublicSitePage site={r.site} slugPath={path.slug} basePath={r.basePath} />

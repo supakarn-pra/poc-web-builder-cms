@@ -45,11 +45,16 @@ import {
   type RowInstance,
   type RowStyle,
 } from "@/lib/page/types";
-import type { Selection } from "./BuilderShell";
+import { LinkField, type LinkPostOption } from "./LinkField";
+import type { BuilderPageInfo, Selection } from "./BuilderShell";
 import { t } from "@/lib/messages";
 
 interface Props {
   rows: RowInstance[];
+  /** หน้าทั้งหมดของเว็บ — ให้ปุ่ม/เมนูเลือกลิงก์ไปหน้าในเว็บได้ */
+  pages: BuilderPageInfo[];
+  /** บทความที่เผยแพร่ — ให้ปุ่ม/เมนูลิงก์ไปบทความได้ */
+  posts: LinkPostOption[];
   selection: Selection;
   selectedRow: RowInstance | null;
   onSelect: (sel: Selection) => void;
@@ -435,6 +440,8 @@ function ComponentSettings({
   row,
   column,
   component,
+  pages,
+  posts,
   onComponentProps,
   onMoveComponent,
   onDeleteComponent,
@@ -450,7 +457,12 @@ function ComponentSettings({
   return (
     <>
       <Group label="เนื้อหา">
-        <ComponentFields component={component} patch={patch} />
+        <ComponentFields
+          component={component}
+          patch={patch}
+          pages={pages}
+          posts={posts}
+        />
       </Group>
 
       <Group label="จัดการ">
@@ -490,9 +502,13 @@ function ComponentSettings({
 function ComponentFields({
   component,
   patch,
+  pages,
+  posts,
 }: {
   component: ComponentInstance;
   patch: (p: Record<string, unknown>) => void;
+  pages: BuilderPageInfo[];
+  posts: LinkPostOption[];
 }) {
   switch (component.type) {
     case "heading": {
@@ -620,15 +636,15 @@ function ComponentFields({
                     <Trash2 size={13} />
                   </button>
                 </div>
-                <input
+                <LinkField
                   value={b.href}
-                  onChange={(e) => {
+                  onChange={(href) => {
                     const buttons = [...p.buttons];
-                    buttons[i] = { ...buttons[i], href: e.target.value };
+                    buttons[i] = { ...buttons[i], href };
                     setButtons(buttons);
                   }}
-                  placeholder="ลิงก์ เช่น /contact หรือ https://…"
-                  className="block w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                  pages={pages}
+                  posts={posts}
                 />
                 <div className="grid grid-cols-2 gap-1.5">
                   {(
@@ -934,37 +950,42 @@ function ComponentFields({
           <div className="space-y-1.5">
             <span className="text-sm font-medium">เมนู</span>
             {p.links.map((link, i) => (
-              <div key={i} className="flex gap-1.5">
-                <input
-                  value={link.label}
-                  onChange={(e) => {
-                    const links = [...p.links];
-                    links[i] = { ...links[i], label: e.target.value };
-                    patch({ links });
-                  }}
-                  placeholder="ชื่อเมนู"
-                  className="w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
-                />
-                <input
+              <div
+                key={i}
+                className="space-y-1.5 rounded-md border border-border p-2.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <input
+                    value={link.label}
+                    onChange={(e) => {
+                      const links = [...p.links];
+                      links[i] = { ...links[i], label: e.target.value };
+                      patch({ links });
+                    }}
+                    placeholder="ชื่อเมนู"
+                    className="w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                  />
+                  <button
+                    type="button"
+                    aria-label="ลบเมนูนี้"
+                    onClick={() =>
+                      patch({ links: p.links.filter((_, j) => j !== i) })
+                    }
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-text-muted hover:text-danger"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                <LinkField
                   value={link.href}
-                  onChange={(e) => {
+                  onChange={(href) => {
                     const links = [...p.links];
-                    links[i] = { ...links[i], href: e.target.value };
+                    links[i] = { ...links[i], href };
                     patch({ links });
                   }}
-                  placeholder="ลิงก์"
-                  className="w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                  pages={pages}
+                  posts={posts}
                 />
-                <button
-                  type="button"
-                  aria-label="ลบเมนูนี้"
-                  onClick={() =>
-                    patch({ links: p.links.filter((_, j) => j !== i) })
-                  }
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-text-muted hover:text-danger"
-                >
-                  <Trash2 size={13} />
-                </button>
               </div>
             ))}
             <button
@@ -982,6 +1003,17 @@ function ComponentFields({
             value={p.ctaLabel ?? ""}
             onChange={(e) => patch({ ctaLabel: e.target.value || undefined })}
           />
+          {p.ctaLabel ? (
+            <div className="space-y-1.5">
+              <span className="text-sm font-medium">ลิงก์ของปุ่มด้านขวา</span>
+              <LinkField
+                value={p.ctaHref ?? "#"}
+                onChange={(ctaHref) => patch({ ctaHref })}
+                pages={pages}
+                posts={posts}
+              />
+            </div>
+          ) : null}
         </>
       );
     }
@@ -1009,6 +1041,61 @@ function ComponentFields({
             onChange={(e) => patch({ copyright: e.target.value || undefined })}
             placeholder={`© ${p.brandName}`}
           />
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium">
+              เมนูส่วนท้าย ({(p.links ?? []).length})
+            </span>
+            {(p.links ?? []).map((link, i) => (
+              <div
+                key={i}
+                className="space-y-1.5 rounded-md border border-border p-2.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <input
+                    value={link.label}
+                    onChange={(e) => {
+                      const links = [...(p.links ?? [])];
+                      links[i] = { ...links[i], label: e.target.value };
+                      patch({ links });
+                    }}
+                    placeholder="ชื่อเมนู"
+                    className="w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                  />
+                  <button
+                    type="button"
+                    aria-label="ลบเมนูนี้"
+                    onClick={() =>
+                      patch({ links: (p.links ?? []).filter((_, j) => j !== i) })
+                    }
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-text-muted hover:text-danger"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                <LinkField
+                  value={link.href}
+                  onChange={(href) => {
+                    const links = [...(p.links ?? [])];
+                    links[i] = { ...links[i], href };
+                    patch({ links });
+                  }}
+                  pages={pages}
+                  posts={posts}
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                patch({
+                  links: [...(p.links ?? []), { label: "เมนูใหม่", href: "#" }],
+                })
+              }
+              className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border-strong py-1.5 text-sm text-text-muted hover:bg-surface-muted"
+            >
+              <Plus size={13} /> เพิ่มเมนู
+            </button>
+          </div>
         </>
       );
     }

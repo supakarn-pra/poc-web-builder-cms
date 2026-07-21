@@ -50,6 +50,7 @@ model Website {
   categories   Category[]
   media        MediaAsset[]
   submissions  FormSubmission[]
+  popups       Popup[]
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   publishedAt  DateTime?
@@ -137,4 +138,21 @@ model PageVersion {
   page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
   snapshot  String // JSON: sections ณ เวลา publish
   createdAt DateTime @default(now())
+}
+
+model Popup {
+  id        String   @id @default(cuid())
+  websiteId String
+  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  title     String? // หัวข้อ (ไม่บังคับ)
+  text      String   @default("") // ข้อความใน popup
+  imageUrl  String? // รูปภาพ (ไม่บังคับ)
+  // "ALL" = ทุกหน้า หรือ JSON array ของ pageId เช่น ["id1","id2"]
+  pageIds   String   @default("ALL")
+  sortIndex Int      @default(0) // popup หลายตัวซ้อนกันตามลำดับนี้ (น้อย = อยู่บนสุด)
+  enabled   Boolean  @default(true)
+  // แสดงช่องติ๊ก "ไม่ต้องแสดงอีกในวันนี้" ให้คนดูไหม
+  allowHideToday Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

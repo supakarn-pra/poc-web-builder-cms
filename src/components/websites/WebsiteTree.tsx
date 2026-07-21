@@ -11,12 +11,15 @@ import {
   PanelBottom,
   Plus,
   Network,
+  Trash2,
   X,
 } from "lucide-react";
 import {
   createLanding,
+  deleteWebsite,
   setPublicWebsite,
   type CreateWebsiteState,
+  type DeleteWebsiteState,
 } from "@/server/actions/website";
 import { createPage, type PageActionState } from "@/server/actions/page";
 import { pageLayouts } from "@/lib/pageLayouts";
@@ -81,7 +84,7 @@ function SiteCard({
     ? `platform.com/${site.subdomain}`
     : site.isPublic
       ? "platform.com"
-      : "ยังไม่เผยแพร่";
+      : "ยังไม่ใช้งานจริง";
 
   return (
     <div
@@ -119,12 +122,12 @@ function SiteCard({
             <span className="truncate font-medium">{site.name}</span>
             {!isSub ? (
               <span className="rounded bg-surface-muted px-1.5 py-0.5 text-[10px] text-text-subtle">
-                เว็บหลัก
+                เวอร์ชัน
               </span>
             ) : null}
             {site.isPublic ? (
               <span className="rounded bg-success/10 px-1.5 py-0.5 text-[10px] font-medium text-success">
-                สาธารณะ (แสดงที่ /)
+                ใช้งานจริง (แสดงที่ /)
               </span>
             ) : null}
           </span>
@@ -201,7 +204,7 @@ function SiteCard({
             </div>
           </section>
 
-          {/* ปุ่มเปิดเว็บ + แก้ + ตั้งเป็นสาธารณะ */}
+          {/* ปุ่มเปิดเว็บ + แก้ + ใช้เวอร์ชันนี้ + ลบ */}
           <div className="flex flex-wrap items-center gap-2">
             {homeId ? (
               <Link href={`/builder/${site.id}/${homeId}`}>
@@ -219,10 +222,11 @@ function SiteCard({
               <form action={setPublicWebsite}>
                 <input type="hidden" name="websiteId" value={site.id} />
                 <Button type="submit" size="sm" variant="ghost">
-                  ตั้งเป็นเว็บสาธารณะ
+                  ใช้เวอร์ชันนี้เป็นเว็บจริง
                 </Button>
               </form>
             ) : null}
+            {!site.isPublic ? <DeleteSiteButton site={site} isSub={isSub} /> : null}
           </div>
 
           {/* Landing แยก (sub-path) — เฉพาะเว็บหลัก */}
@@ -267,6 +271,42 @@ function SiteCard({
         />
       ) : null}
     </div>
+  );
+}
+
+function DeleteSiteButton({ site, isSub }: { site: TreeSite; isSub: boolean }) {
+  const [state, action, pending] = useActionState<DeleteWebsiteState, FormData>(
+    deleteWebsite,
+    {},
+  );
+  useEffect(() => {
+    if (state.error) window.alert(state.error);
+  }, [state]);
+  const kind = isSub ? "Landing" : "เวอร์ชัน";
+  return (
+    <form
+      action={action}
+      onSubmit={(e) => {
+        if (
+          !window.confirm(
+            `ลบ${kind} "${site.name}" ใช่ไหม?\n\nหน้าเว็บ บทความ และรูปภาพทั้งหมดใน${kind}นี้จะถูกลบไปด้วย และย้อนกลับไม่ได้`,
+          )
+        ) {
+          e.preventDefault();
+        }
+      }}
+    >
+      <input type="hidden" name="websiteId" value={site.id} />
+      <Button
+        type="submit"
+        size="sm"
+        variant="ghost"
+        disabled={pending}
+        className="text-danger hover:bg-danger/5"
+      >
+        <Trash2 size={14} /> {pending ? "กำลังลบ…" : `ลบ${kind}นี้`}
+      </Button>
+    </form>
   );
 }
 

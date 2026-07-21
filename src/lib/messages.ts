@@ -7,15 +7,16 @@ export const t = {
   },
   nav: {
     dashboard: "ภาพรวม",
-    websites: "เว็บไซต์",
+    // เว็บหนึ่งมีได้หลาย "เวอร์ชัน" (Website record) — ใช้งานจริงได้ทีละอัน
+    websites: "เวอร์ชันเว็บไซต์",
     pages: "หน้าเว็บ",
     posts: "บทความ",
     media: "รูปภาพ",
-    menu: "เมนูเว็บไซต์",
+    popups: "Pop-up",
     settings: "ตั้งค่า",
   },
   action: {
-    createWebsite: "สร้างเว็บไซต์",
+    createWebsite: "สร้างเวอร์ชันใหม่",
     createPage: "เพิ่มหน้าใหม่",
     createPost: "เขียนบทความใหม่",
     editWebsite: "แก้ไขเว็บไซต์",

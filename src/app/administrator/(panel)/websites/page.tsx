@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { t } from "@/lib/messages";
 
-export const metadata = { title: "เว็บไซต์" };
+export const metadata = { title: "เวอร์ชันเว็บไซต์" };
 
 const pageSelect = {
   id: true,
@@ -72,7 +72,7 @@ export default async function WebsitesListPage() {
         {sites.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-border-strong bg-surface p-16 text-center">
             <p className="text-text-muted">
-              ยังไม่มีเว็บไซต์ — สร้างเว็บไซต์แรกของคุณเลย
+              ยังไม่มีเวอร์ชันเว็บไซต์ — สร้างเวอร์ชันแรกของคุณเลย
             </p>
             <Link href="/administrator/websites/new">
               <Button>
@@ -83,7 +83,8 @@ export default async function WebsitesListPage() {
         ) : (
           <>
             <p className="mb-3 text-sm text-text-muted">
-              คลิกที่เว็บไซต์เพื่อดูหน้าทั้งหมด ส่วนหัว/ส่วนท้าย และโดเมนย่อย
+              เว็บของคุณมีได้หลายเวอร์ชัน — เลือกใช้งานจริงได้ทีละเวอร์ชัน
+              คลิกที่เวอร์ชันเพื่อดูหน้าทั้งหมด ส่วนหัว/ส่วนท้าย และ Landing แยก
             </p>
             <WebsiteTree sites={sites} />
           </>

@@ -30,9 +30,13 @@ export default async function BuilderPage({
         headerRow: true,
         footerRow: true,
         pages: {
-          where: { isHome: true },
-          select: { id: true },
-          take: 1,
+          select: { id: true, name: true, slug: true, isHome: true },
+          orderBy: [{ isHome: "desc" }, { createdAt: "asc" }],
+        },
+        posts: {
+          where: { status: "PUBLISHED" },
+          select: { id: true, title: true },
+          orderBy: { publishedAt: "desc" },
         },
       },
     });
@@ -52,6 +56,8 @@ export default async function BuilderPage({
         part={part}
         initialRow={row}
         backPageId={website.pages[0]?.id ?? null}
+        pages={website.pages}
+        posts={website.posts}
         globalStyle={parseGlobalStyle(website.globalStyle)}
       />
     );
@@ -70,8 +76,13 @@ export default async function BuilderPage({
           headerRow: true,
           footerRow: true,
           pages: {
-            select: { id: true, name: true, isHome: true },
+            select: { id: true, name: true, slug: true, isHome: true },
             orderBy: [{ isHome: "desc" }, { createdAt: "asc" }],
+          },
+          posts: {
+            where: { status: "PUBLISHED" },
+            select: { id: true, title: true },
+            orderBy: { publishedAt: "desc" },
           },
         },
       },
@@ -95,6 +106,7 @@ export default async function BuilderPage({
       pageSlug={page.isHome ? "" : page.slug}
       websiteName={page.website.name}
       pages={page.website.pages}
+      posts={page.website.posts}
       initialRows={parseRows(page.sections)}
       chromeHeader={parseHeaderRow(page.website.headerRow)}
       chromeFooter={parseFooterRow(page.website.footerRow)}

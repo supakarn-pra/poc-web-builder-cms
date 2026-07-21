@@ -130,7 +130,7 @@ export default async function DashboardPage() {
                     ? "platform.com (หน้าหลัก)"
                     : website.parentId
                       ? `platform.com/${website.subdomain}`
-                      : "ยังไม่เผยแพร่ (ตั้งเป็นเว็บสาธารณะที่เมนูเว็บไซต์)"}
+                      : "ยังไม่ใช้งานจริง (เลือกเวอร์ชันได้ที่เมนูเวอร์ชันเว็บไซต์)"}
                 </span>
               </p>
             </div>
