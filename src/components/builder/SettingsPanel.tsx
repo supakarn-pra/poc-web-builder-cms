@@ -1041,6 +1041,61 @@ function ComponentFields({
             onChange={(e) => patch({ copyright: e.target.value || undefined })}
             placeholder={`© ${p.brandName}`}
           />
+          <div className="space-y-1.5">
+            <span className="text-sm font-medium">
+              เมนูส่วนท้าย ({(p.links ?? []).length})
+            </span>
+            {(p.links ?? []).map((link, i) => (
+              <div
+                key={i}
+                className="space-y-1.5 rounded-md border border-border p-2.5"
+              >
+                <div className="flex items-center gap-1.5">
+                  <input
+                    value={link.label}
+                    onChange={(e) => {
+                      const links = [...(p.links ?? [])];
+                      links[i] = { ...links[i], label: e.target.value };
+                      patch({ links });
+                    }}
+                    placeholder="ชื่อเมนู"
+                    className="w-0 flex-1 rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+                  />
+                  <button
+                    type="button"
+                    aria-label="ลบเมนูนี้"
+                    onClick={() =>
+                      patch({ links: (p.links ?? []).filter((_, j) => j !== i) })
+                    }
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-text-muted hover:text-danger"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+                <LinkField
+                  value={link.href}
+                  onChange={(href) => {
+                    const links = [...(p.links ?? [])];
+                    links[i] = { ...links[i], href };
+                    patch({ links });
+                  }}
+                  pages={pages}
+                  posts={posts}
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                patch({
+                  links: [...(p.links ?? []), { label: "เมนูใหม่", href: "#" }],
+                })
+              }
+              className="flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border-strong py-1.5 text-sm text-text-muted hover:bg-surface-muted"
+            >
+              <Plus size={13} /> เพิ่มเมนู
+            </button>
+          </div>
         </>
       );
     }

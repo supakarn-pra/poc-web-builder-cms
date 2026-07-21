@@ -8,7 +8,6 @@ import {
   FileText,
   BookOpen,
   Image as ImageIcon,
-  LayoutPanelTop,
   Megaphone,
   Settings,
   LogOut,
@@ -23,7 +22,6 @@ const items = [
   { href: "/administrator/pages", label: t.nav.pages, Icon: FileText },
   { href: "/administrator/posts", label: t.nav.posts, Icon: BookOpen },
   { href: "/administrator/media", label: t.nav.media, Icon: ImageIcon },
-  { href: "/administrator/menu", label: t.nav.menu, Icon: LayoutPanelTop },
   { href: "/administrator/popups", label: t.nav.popups, Icon: Megaphone },
   { href: "/administrator/settings", label: t.nav.settings, Icon: Settings },
 ];
