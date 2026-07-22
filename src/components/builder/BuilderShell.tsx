@@ -5,7 +5,9 @@ import { BuilderTopbar, type SaveStatus } from "./BuilderTopbar";
 import { RowList } from "./RowList";
 import { Canvas } from "./Canvas";
 import { SettingsPanel } from "./SettingsPanel";
+import { PanelRail } from "./PanelRail";
 import { AddRowModal } from "./AddRowModal";
+import { t } from "@/lib/messages";
 import type { DeviceMode } from "./DevicePreviewSwitch";
 import { componentRegistry } from "@/lib/page/components/registry";
 import { getRowPreset, makeBlankRow } from "@/lib/page/presets";
@@ -99,6 +101,9 @@ export function BuilderShell({
   );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
   const [addOpen, setAddOpen] = useState(false);
+  // ซ่อนแผงซ้าย/ขวาได้ — บางจอแผงบีบพรีวิวจนแคบ
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
 
   // ---- Auto save (debounced) -------------------------------------------
   const isFirstRender = useRef(true);
@@ -362,35 +367,44 @@ export function BuilderShell({
         }}
       />
       <div className="flex flex-1 min-h-0">
-        <RowList
-          rows={rows}
-          selection={selection}
-          onSelect={(rowId) => setSelection({ kind: "row", rowId })}
-          onToggleHide={(id) =>
-            mutateRow(id, (r) => ({
-              ...r,
-              style: { ...r.style, hidden: !r.style.hidden },
-            }))
-          }
-          onDuplicate={(id) => {
-            commitRows((cur) => {
-              const idx = cur.findIndex((r) => r.id === id);
-              if (idx < 0) return cur;
-              return [
-                ...cur.slice(0, idx + 1),
-                cloneRow(cur[idx]),
-                ...cur.slice(idx + 1),
-              ];
-            });
-          }}
-          onDelete={(id) => {
-            if (!window.confirm("ต้องการลบแถวนี้ใช่ไหม?")) return;
-            commitRows((cur) => cur.filter((r) => r.id !== id));
-            setSelection((sel) => (sel?.rowId === id ? null : sel));
-          }}
-          onReorder={(next) => commitRows(() => next)}
-          onAdd={() => setAddOpen(true)}
-        />
+        {!leftOpen ? (
+          <PanelRail
+            side="left"
+            label={t.builder.sections}
+            onOpen={() => setLeftOpen(true)}
+          />
+        ) : (
+          <RowList
+            rows={rows}
+            selection={selection}
+            onCollapse={() => setLeftOpen(false)}
+            onSelect={(rowId) => setSelection({ kind: "row", rowId })}
+            onToggleHide={(id) =>
+              mutateRow(id, (r) => ({
+                ...r,
+                style: { ...r.style, hidden: !r.style.hidden },
+              }))
+            }
+            onDuplicate={(id) => {
+              commitRows((cur) => {
+                const idx = cur.findIndex((r) => r.id === id);
+                if (idx < 0) return cur;
+                return [
+                  ...cur.slice(0, idx + 1),
+                  cloneRow(cur[idx]),
+                  ...cur.slice(idx + 1),
+                ];
+              });
+            }}
+            onDelete={(id) => {
+              if (!window.confirm("ต้องการลบแถวนี้ใช่ไหม?")) return;
+              commitRows((cur) => cur.filter((r) => r.id !== id));
+              setSelection((sel) => (sel?.rowId === id ? null : sel));
+            }}
+            onReorder={(next) => commitRows(() => next)}
+            onAdd={() => setAddOpen(true)}
+          />
+        )}
         <Canvas
           device={device}
           rows={rows}
@@ -404,31 +418,40 @@ export function BuilderShell({
             websiteId,
           }}
         />
-        <SettingsPanel
-          rows={rows}
-          pages={pages}
-          posts={posts}
-          selection={selection}
-          selectedRow={selectedRow}
-          onSelect={setSelection}
-          onRowStyle={(rowId, patch) =>
-            mutateRow(rowId, (r) => ({ ...r, style: { ...r.style, ...patch } }))
-          }
-          onRowLabel={(rowId, label) =>
-            mutateRow(rowId, (r) => ({ ...r, label }))
-          }
-          onRowLayout={setRowLayout}
-          onColumnStyle={(rowId, colId, patch) =>
-            mutateColumn(rowId, colId, (c) => ({
-              ...c,
-              style: { ...c.style, ...patch },
-            }))
-          }
-          onAddComponent={addComponent}
-          onComponentProps={updateComponentProps}
-          onMoveComponent={moveComponent}
-          onDeleteComponent={deleteComponent}
-        />
+        {!rightOpen ? (
+          <PanelRail
+            side="right"
+            label={t.builder.settings}
+            onOpen={() => setRightOpen(true)}
+          />
+        ) : (
+          <SettingsPanel
+            rows={rows}
+            pages={pages}
+            posts={posts}
+            selection={selection}
+            selectedRow={selectedRow}
+            onCollapse={() => setRightOpen(false)}
+            onSelect={setSelection}
+            onRowStyle={(rowId, patch) =>
+              mutateRow(rowId, (r) => ({ ...r, style: { ...r.style, ...patch } }))
+            }
+            onRowLabel={(rowId, label) =>
+              mutateRow(rowId, (r) => ({ ...r, label }))
+            }
+            onRowLayout={setRowLayout}
+            onColumnStyle={(rowId, colId, patch) =>
+              mutateColumn(rowId, colId, (c) => ({
+                ...c,
+                style: { ...c.style, ...patch },
+              }))
+            }
+            onAddComponent={addComponent}
+            onComponentProps={updateComponentProps}
+            onMoveComponent={moveComponent}
+            onDeleteComponent={deleteComponent}
+          />
+        )}
       </div>
 
       <AddRowModal

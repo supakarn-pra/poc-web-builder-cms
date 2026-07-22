@@ -11,6 +11,7 @@ import {
   ArrowDownToLine,
   ArrowUpToLine,
   FoldVertical,
+  PanelRightClose,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -73,6 +74,8 @@ interface Props {
   ) => void;
   onMoveComponent: (rowId: string, colId: string, compId: string, dir: -1 | 1) => void;
   onDeleteComponent: (rowId: string, colId: string, compId: string) => void;
+  /** ซ่อนแผงนี้ (แสดงเป็นแถบแคบแทน) — ให้พรีวิวกว้างขึ้น */
+  onCollapse?: () => void;
 }
 
 export function SettingsPanel(props: Props) {
@@ -90,7 +93,20 @@ export function SettingsPanel(props: Props) {
   return (
     <aside className="w-80 shrink-0 border-l border-border bg-surface flex flex-col">
       <div className="px-4 py-3 border-b border-border">
-        <h2 className="text-sm font-semibold">{t.builder.settings}</h2>
+        <div className="flex items-start justify-between">
+          <h2 className="text-sm font-semibold">{t.builder.settings}</h2>
+          {props.onCollapse ? (
+            <button
+              type="button"
+              onClick={props.onCollapse}
+              title={`ซ่อน${t.builder.settings}`}
+              aria-label={`ซ่อน${t.builder.settings}`}
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-text-subtle hover:bg-surface-muted hover:text-text"
+            >
+              <PanelRightClose size={15} />
+            </button>
+          ) : null}
+        </div>
         {selection && selectedRow ? (
           <Breadcrumbs
             selection={selection}
