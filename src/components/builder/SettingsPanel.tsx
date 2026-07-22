@@ -24,10 +24,12 @@ import {
   MAX_BUTTONS,
   type ButtonItem,
   type ContactFormProps,
+  type CookieConsentProps,
   type FaqProps,
   type GalleryProps,
   type HeadingProps,
   type ImageProps,
+  type ImageSliderProps,
   type NavbarProps,
   type QuoteProps,
   type SiteFooterProps,
@@ -322,6 +324,17 @@ function RowSettings({
           label={t.builder.style.background}
           value={row.style.background}
           onChange={(v) => onRowStyle(row.id, { background: v })}
+        />
+        <SelectField
+          label="สีตัวอักษรในแถว"
+          value={row.style.textTone ?? "auto"}
+          onChange={(v) =>
+            onRowStyle(row.id, { textTone: v as RowStyle["textTone"] })
+          }
+          options={[
+            { value: "auto", label: "ปกติ (ตามธีม)" },
+            { value: "light", label: "ขาว (สำหรับพื้นหลังเข้ม)" },
+          ]}
         />
       </Group>
     </>
@@ -689,6 +702,78 @@ function ComponentFields({
               </button>
             ) : null}
           </div>
+        </>
+      );
+    }
+    case "imageSlider": {
+      const p = component.props as ImageSliderProps;
+      return (
+        <>
+          <SelectField
+            label="สัดส่วนภาพ"
+            value={p.aspect ?? "banner"}
+            onChange={(v) => patch({ aspect: v })}
+            options={[
+              { value: "banner", label: "แบนเนอร์กว้าง (21:9)" },
+              { value: "wide", label: "จอกว้าง (16:9)" },
+              { value: "classic", label: "แนวนอน (4:3)" },
+            ]}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={p.autoplay !== false}
+              onChange={(e) => patch({ autoplay: e.target.checked })}
+              className="h-4 w-4 rounded border-border"
+            />
+            เลื่อนสไลด์เองอัตโนมัติ (ทุก 5 วินาที)
+          </label>
+          <GalleryImagesField
+            images={p.images}
+            onChange={(images) => patch({ images })}
+          />
+        </>
+      );
+    }
+    case "cookieConsent": {
+      const p = component.props as CookieConsentProps;
+      return (
+        <>
+          <Input
+            label="หัวข้อ"
+            value={p.title ?? ""}
+            onChange={(e) => patch({ title: e.target.value || undefined })}
+          />
+          <label className="block space-y-1">
+            <span className="text-sm font-medium">ข้อความ</span>
+            <textarea
+              value={p.text}
+              onChange={(e) => patch({ text: e.target.value })}
+              rows={3}
+              className="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-[color:var(--brand-primary)]"
+            />
+          </label>
+          <Input
+            label={'ลิงก์นโยบายคุกกี้ ("อ่านเพิ่มเติม" — เว้นว่างถ้าไม่ใช้)'}
+            value={p.policyUrl ?? ""}
+            onChange={(e) => patch({ policyUrl: e.target.value || undefined })}
+            placeholder="https://…"
+          />
+          <div className="grid grid-cols-2 gap-1.5">
+            <Input
+              label="ปุ่มยอมรับ"
+              value={p.acceptLabel}
+              onChange={(e) => patch({ acceptLabel: e.target.value })}
+            />
+            <Input
+              label="ปุ่มไม่ยอมรับ"
+              value={p.declineLabel}
+              onChange={(e) => patch({ declineLabel: e.target.value })}
+            />
+          </div>
+          <p className="text-[11px] text-text-subtle">
+            แถบจะลอยล่างสุดของจอจนกว่าคนดูจะกดตอบ — คำตอบถูกจำไว้ในเครื่องของคนดู
+          </p>
         </>
       );
     }

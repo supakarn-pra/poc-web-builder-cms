@@ -9,6 +9,7 @@ import {
   RowView,
   columnClasses,
   rowClasses,
+  rowInlineStyle,
   rowInnerClasses,
 } from "@/lib/page/render";
 import {
@@ -66,6 +67,7 @@ function InlineComponentEditor({
 
 /** ตัวอย่างบทความใน canvas — ของจริงดึงจาก DB ตอน render หน้าเว็บ */
 const MOCK_SITE_DATA: SiteData = {
+  inEditor: true,
   basePath: "",
   blogBasePath: "#",
   // ใน canvas ลิงก์คลิกไม่ได้อยู่แล้ว — "page:{id}" ที่หาไม่เจอจะ resolve เป็น "#"
@@ -147,7 +149,8 @@ function LockedChromeRow({
   return (
     <div className="group relative">
       <div className="pointer-events-none">
-        <RowView row={row} global={global} />
+        {/* ต้องส่ง siteData (inEditor) — กัน component ลอยเช่นแถบคุกกี้ทับ UI */}
+        <RowView row={row} global={global} siteData={MOCK_SITE_DATA} />
       </div>
       <Link
         href={href}
@@ -211,7 +214,7 @@ export function Canvas({
                   "relative cursor-pointer outline outline-2 -outline-offset-2 outline-transparent hover:outline-[color:var(--brand-primary)]/30",
                   rowSelected && "outline-[color:var(--brand-primary)]",
                 )}
-                style={{ background: row.style.background }}
+                style={rowInlineStyle(row)}
               >
                 {rowSelected ? <Chip text={row.label} /> : null}
                 <div className={rowInnerClasses(row)}>

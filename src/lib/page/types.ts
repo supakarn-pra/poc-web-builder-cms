@@ -15,6 +15,7 @@ export type ComponentType =
   | "text"
   | "button"
   | "image"
+  | "imageSlider"
   | "video"
   | "gallery"
   | "quote"
@@ -24,12 +25,16 @@ export type ComponentType =
   | "spacer"
   | "contactForm"
   | "blogList"
+  | "cookieConsent"
   | "navbar"
   | "siteFooter";
 
 /** ข้อมูลระดับเว็บไซต์ที่ component บางตัวใช้ตอน render (เช่น blogList, contactForm) */
 export interface SiteData {
   websiteId?: string; // สำหรับ contactForm ส่งข้อความเข้าเว็บที่ถูกต้อง
+  /** true = กำลัง render ใน canvas ของ builder — component แบบลอย (เช่น
+   *  แถบคุกกี้) ควรแสดงเป็นกล่องตัวอย่างแทนที่จะลอยทับ UI */
+  inEditor?: boolean;
   /** base path ของเว็บตอน render — "" (root), "/{slug}" (landing), "/preview/{id}" */
   basePath: string;
   blogBasePath: string; // เช่น /blog หรือ /aaa/blog
@@ -76,6 +81,8 @@ export interface RowStyle {
   hidden?: boolean;
   /** ความกว้างของเนื้อหาในแถว */
   contentWidth?: "normal" | "wide" | "full";
+  /** "light" = ตัวอักษรขาว สำหรับแถวพื้นหลังเข้ม (override design token) */
+  textTone?: "auto" | "light";
 }
 
 export interface RowInstance {

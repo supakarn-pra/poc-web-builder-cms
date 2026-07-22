@@ -2,7 +2,9 @@ import { z } from "zod";
 import type { FC } from "react";
 import type { ComponentType, GlobalStyle, SiteData } from "../types";
 import { ContactFormClient } from "./ContactFormClient";
+import { CookieConsentClient } from "./CookieConsentClient";
 import { GallerySlider } from "./GallerySlider";
+import { ImageSliderClient } from "./ImageSliderClient";
 import { StatNumber } from "./StatNumber";
 import { resolveHref } from "../links";
 
@@ -202,6 +204,30 @@ const imageDef: ComponentDefinition<ImageProps> = {
       </div>
     );
   },
+};
+
+// --- imageSlider ---------------------------------------------------------------
+// ภาพสไลด์เต็มความกว้าง (แบนเนอร์ hero) — ต่างจาก gallery โหมดสไลด์ที่โชว์หลายรูป
+
+const imageSliderSchema = z.object({
+  images: z.array(z.string()),
+  aspect: z.enum(["banner", "wide", "classic"]).optional(),
+  autoplay: z.boolean().optional(),
+});
+export type ImageSliderProps = z.infer<typeof imageSliderSchema>;
+
+const imageSliderDef: ComponentDefinition<ImageSliderProps> = {
+  type: "imageSlider",
+  label: "ภาพสไลด์",
+  schema: imageSliderSchema,
+  defaultProps: () => ({ images: [], aspect: "banner", autoplay: true }),
+  Render: ({ props }) => (
+    <ImageSliderClient
+      images={props.images}
+      aspect={props.aspect ?? "banner"}
+      autoplay={props.autoplay !== false}
+    />
+  ),
 };
 
 // --- video ---------------------------------------------------------------------
@@ -527,6 +553,52 @@ const blogListDef: ComponentDefinition<BlogListProps> = {
   },
 };
 
+// --- cookieConsent ---------------------------------------------------------------
+// แถบขอใช้คุกกี้ ลอยล่างจอทุกหน้าที่มี component นี้ — จำคำตอบใน localStorage
+
+const cookieConsentSchema = z.object({
+  title: z.string().optional(),
+  text: z.string(),
+  policyUrl: z.string().optional(),
+  acceptLabel: z.string(),
+  declineLabel: z.string(),
+});
+export type CookieConsentProps = z.infer<typeof cookieConsentSchema>;
+
+const cookieConsentDef: ComponentDefinition<CookieConsentProps> = {
+  type: "cookieConsent",
+  label: "แถบใช้คุกกี้",
+  schema: cookieConsentSchema,
+  defaultProps: () => ({
+    title: "เว็บไซต์นี้ใช้คุกกี้",
+    text: "เราใช้คุกกี้เพื่อพัฒนาประสบการณ์การใช้งานเว็บไซต์ให้ดียิ่งขึ้น คุณสามารถศึกษารายละเอียดการใช้คุกกี้ได้ที่นโยบายคุกกี้",
+    acceptLabel: "ยอมรับ",
+    declineLabel: "ไม่ยอมรับ",
+  }),
+  Render: ({ props, siteData }) =>
+    siteData?.inEditor ? (
+      // ใน canvas แสดงเป็นกล่องตัวอย่างแทนการลอยทับ UI
+      <div className="rounded-md bg-black/90 px-4 py-3 text-white">
+        {props.title ? (
+          <p className="text-sm font-semibold underline">{props.title}</p>
+        ) : null}
+        <p className="mt-0.5 text-xs text-white/80">{props.text}</p>
+        <p className="mt-1.5 text-[10px] text-white/60">
+          แถบใช้คุกกี้ — บนเว็บจริงจะลอยอยู่ล่างสุดของจอจนกว่าคนดูจะกดตอบ
+        </p>
+      </div>
+    ) : (
+      <CookieConsentClient
+        websiteId={siteData?.websiteId}
+        title={props.title}
+        text={props.text}
+        policyUrl={props.policyUrl || undefined}
+        acceptLabel={props.acceptLabel}
+        declineLabel={props.declineLabel}
+      />
+    ),
+};
+
 // --- navbar ---------------------------------------------------------------------
 
 const navbarSchema = z.object({
@@ -550,11 +622,21 @@ const navbarDef: ComponentDefinition<NavbarProps> = {
       { label: "ติดต่อ", href: "#" },
     ],
   }),
-  Render: ({ props, siteData }) => (
+  Render: ({ props, global, siteData }) => (
     <div className="flex h-16 items-center justify-between">
-      <span className="font-display text-lg font-semibold">
-        {props.brandName}
-      </span>
+      {global.logoUrl ? (
+        // ตั้งโลโก้ได้ที่ ตั้งค่า → รูปแบบเว็บไซต์ — มีโลโก้แล้วใช้แทนชื่อ
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={global.logoUrl}
+          alt={props.brandName}
+          className="h-10 w-auto object-contain"
+        />
+      ) : (
+        <span className="font-display text-lg font-semibold">
+          {props.brandName}
+        </span>
+      )}
       <nav className="hidden @3xl:flex items-center gap-6 text-sm">
         {props.links.map((l) => (
           <a
@@ -633,6 +715,7 @@ export const componentRegistry: Record<ComponentType, ComponentDefinition<any>> 
   text: textDef,
   button: buttonDef,
   image: imageDef,
+  imageSlider: imageSliderDef,
   video: videoDef,
   gallery: galleryDef,
   quote: quoteDef,
@@ -642,6 +725,7 @@ export const componentRegistry: Record<ComponentType, ComponentDefinition<any>> 
   spacer: spacerDef,
   contactForm: contactFormDef,
   blogList: blogListDef,
+  cookieConsent: cookieConsentDef,
   navbar: navbarDef,
   siteFooter: siteFooterDef,
 };
@@ -652,6 +736,7 @@ export const userAddableComponents: ComponentType[] = [
   "text",
   "button",
   "image",
+  "imageSlider",
   "video",
   "gallery",
   "quote",
@@ -659,6 +744,7 @@ export const userAddableComponents: ComponentType[] = [
   "faq",
   "contactForm",
   "blogList",
+  "cookieConsent",
   "divider",
   "spacer",
 ];

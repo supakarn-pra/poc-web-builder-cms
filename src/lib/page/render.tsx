@@ -92,6 +92,23 @@ export function rowClasses(row: RowInstance) {
   return rowPaddingClass[row.style.paddingY ?? "md"];
 }
 
+/**
+ * inline style ของแถว — พื้นหลัง + โหมดตัวอักษรขาว (override design token
+ * --text/--text-muted/--text-subtle เฉพาะในแถว สำหรับพื้นหลังเข้ม)
+ */
+export function rowInlineStyle(row: RowInstance): React.CSSProperties {
+  const style: Record<string, string | undefined> = {
+    background: row.style.background,
+  };
+  if (row.style.textTone === "light") {
+    style.color = "#ffffff";
+    style["--text"] = "#ffffff";
+    style["--text-muted"] = "rgba(255,255,255,0.8)";
+    style["--text-subtle"] = "rgba(255,255,255,0.65)";
+  }
+  return style as React.CSSProperties;
+}
+
 export function rowInnerClasses(row: RowInstance) {
   return cn(
     "mx-auto grid w-full grid-cols-12 gap-x-6 gap-y-8 px-4 @3xl:px-6",
@@ -111,10 +128,7 @@ export function RowView({
 }) {
   if (row.style.hidden) return null;
   return (
-    <section
-      className={rowClasses(row)}
-      style={{ background: row.style.background }}
-    >
+    <section className={rowClasses(row)} style={rowInlineStyle(row)}>
       <div className={rowInnerClasses(row)}>
         {row.columns.map((col) => (
           <div key={col.id} className={columnClasses(col)}>
