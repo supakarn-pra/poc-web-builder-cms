@@ -17,7 +17,15 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Eye, EyeOff, Copy, Trash2, Plus } from "lucide-react";
+import {
+  GripVertical,
+  Eye,
+  EyeOff,
+  Copy,
+  PanelLeftClose,
+  Trash2,
+  Plus,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { RowInstance } from "@/lib/page/types";
 import type { Selection } from "./BuilderShell";
@@ -32,6 +40,8 @@ interface Props {
   onDelete: (id: string) => void;
   onReorder: (rows: RowInstance[]) => void;
   onAdd: () => void;
+  /** ซ่อนแผงนี้ (แสดงเป็นแถบแคบแทน) — ให้พรีวิวกว้างขึ้น */
+  onCollapse?: () => void;
 }
 
 export function RowList({
@@ -43,6 +53,7 @@ export function RowList({
   onDelete,
   onReorder,
   onAdd,
+  onCollapse,
 }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -62,11 +73,24 @@ export function RowList({
 
   return (
     <aside className="w-72 shrink-0 border-r border-border bg-surface flex flex-col">
-      <div className="px-4 py-3 border-b border-border">
-        <h2 className="text-sm font-semibold">{t.builder.sections}</h2>
-        <p className="text-[11px] text-text-subtle">
-          ลากเพื่อจัดลำดับ · คลิกเพื่อแก้ไข
-        </p>
+      <div className="flex items-start justify-between px-4 py-3 border-b border-border">
+        <div>
+          <h2 className="text-sm font-semibold">{t.builder.sections}</h2>
+          <p className="text-[11px] text-text-subtle">
+            ลากเพื่อจัดลำดับ · คลิกเพื่อแก้ไข
+          </p>
+        </div>
+        {onCollapse ? (
+          <button
+            type="button"
+            onClick={onCollapse}
+            title={`ซ่อน${t.builder.sections}`}
+            aria-label={`ซ่อน${t.builder.sections}`}
+            className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-text-subtle hover:bg-surface-muted hover:text-text"
+          >
+            <PanelLeftClose size={15} />
+          </button>
+        ) : null}
       </div>
 
       <DndContext

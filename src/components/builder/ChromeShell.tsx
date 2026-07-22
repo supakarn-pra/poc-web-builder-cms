@@ -5,7 +5,9 @@ import Link from "next/link";
 import { AlertCircle, ArrowLeft, Check, Loader2 } from "lucide-react";
 import { Canvas } from "./Canvas";
 import { SettingsPanel } from "./SettingsPanel";
+import { PanelRail } from "./PanelRail";
 import { DevicePreviewSwitch, type DeviceMode } from "./DevicePreviewSwitch";
+import { t } from "@/lib/messages";
 import type { SaveStatus } from "./BuilderTopbar";
 import type { BuilderPageInfo, BuilderPostInfo, Selection } from "./BuilderShell";
 import type {
@@ -57,6 +59,8 @@ export function ChromeShell({
     rowId: initialRow.id,
   });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("saved");
+  // ซ่อนแผงขวาได้ — ให้พรีวิวกว้างขึ้น
+  const [rightOpen, setRightOpen] = useState(true);
 
   const isFirstRender = useRef(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -151,80 +155,89 @@ export function ChromeShell({
           onSelect={setSelection}
           globalStyle={globalStyle}
         />
-        <SettingsPanel
-          rows={[row]}
-          pages={pages}
-          posts={posts}
-          selection={selection}
-          selectedRow={row}
-          onSelect={setSelection}
-          onRowStyle={(rowId, patch) =>
-            mutateRow(rowId, (r) => ({ ...r, style: { ...r.style, ...patch } }))
-          }
-          onRowLabel={(rowId, label) => mutateRow(rowId, (r) => ({ ...r, label }))}
-          onRowLayout={(rowId, spans) =>
-            mutateRow(rowId, (r) => {
-              const columns: ColumnInstance[] = spans.map((span, i) => {
-                const existing = r.columns[i];
-                return existing
-                  ? { ...existing, span }
-                  : { id: pageItemId("col"), span, components: [] };
-              });
-              const overflow = r.columns.slice(spans.length).flatMap((c) => c.components);
-              if (overflow.length > 0) {
-                const last = columns[columns.length - 1];
-                columns[columns.length - 1] = {
-                  ...last,
-                  components: [...last.components, ...overflow],
-                };
-              }
-              return { ...r, columns };
-            })
-          }
-          onColumnStyle={(rowId, colId, patch) =>
-            mutateColumn(rowId, colId, (c) => ({
-              ...c,
-              style: { ...c.style, ...patch },
-            }))
-          }
-          onAddComponent={(rowId, colId, type: ComponentType) => {
-            const instance: ComponentInstance = {
-              id: pageItemId(`c-${type}`),
-              type,
-              props: componentRegistry[type].defaultProps(),
-            };
-            mutateColumn(rowId, colId, (c) => ({
-              ...c,
-              components: [...c.components, instance],
-            }));
-            setSelection({ kind: "component", rowId, colId, compId: instance.id });
-          }}
-          onComponentProps={(rowId, colId, compId, patch) =>
-            mutateColumn(rowId, colId, (c) => ({
-              ...c,
-              components: c.components.map((x) =>
-                x.id === compId ? { ...x, props: { ...x.props, ...patch } } : x,
-              ),
-            }))
-          }
-          onMoveComponent={(rowId, colId, compId, dir) =>
-            mutateColumn(rowId, colId, (c) => {
-              const idx = c.components.findIndex((x) => x.id === compId);
-              const to = idx + dir;
-              if (idx < 0 || to < 0 || to >= c.components.length) return c;
-              const next = [...c.components];
-              [next[idx], next[to]] = [next[to], next[idx]];
-              return { ...c, components: next };
-            })
-          }
-          onDeleteComponent={(rowId, colId, compId) => {
-            mutateColumn(rowId, colId, (c) => ({
-              ...c,
-              components: c.components.filter((x) => x.id !== compId),
-            }));
-            setSelection({ kind: "column", rowId, colId });
-          }}
-        />
+        {!rightOpen ? (
+          <PanelRail
+            side="right"
+            label={t.builder.settings}
+            onOpen={() => setRightOpen(true)}
+          />
+        ) : (
+          <SettingsPanel
+            rows={[row]}
+            pages={pages}
+            posts={posts}
+            selection={selection}
+            selectedRow={row}
+            onCollapse={() => setRightOpen(false)}
+            onSelect={setSelection}
+            onRowStyle={(rowId, patch) =>
+              mutateRow(rowId, (r) => ({ ...r, style: { ...r.style, ...patch } }))
+            }
+            onRowLabel={(rowId, label) => mutateRow(rowId, (r) => ({ ...r, label }))}
+            onRowLayout={(rowId, spans) =>
+              mutateRow(rowId, (r) => {
+                const columns: ColumnInstance[] = spans.map((span, i) => {
+                  const existing = r.columns[i];
+                  return existing
+                    ? { ...existing, span }
+                    : { id: pageItemId("col"), span, components: [] };
+                });
+                const overflow = r.columns.slice(spans.length).flatMap((c) => c.components);
+                if (overflow.length > 0) {
+                  const last = columns[columns.length - 1];
+                  columns[columns.length - 1] = {
+                    ...last,
+                    components: [...last.components, ...overflow],
+                  };
+                }
+                return { ...r, columns };
+              })
+            }
+            onColumnStyle={(rowId, colId, patch) =>
+              mutateColumn(rowId, colId, (c) => ({
+                ...c,
+                style: { ...c.style, ...patch },
+              }))
+            }
+            onAddComponent={(rowId, colId, type: ComponentType) => {
+              const instance: ComponentInstance = {
+                id: pageItemId(`c-${type}`),
+                type,
+                props: componentRegistry[type].defaultProps(),
+              };
+              mutateColumn(rowId, colId, (c) => ({
+                ...c,
+                components: [...c.components, instance],
+              }));
+              setSelection({ kind: "component", rowId, colId, compId: instance.id });
+            }}
+            onComponentProps={(rowId, colId, compId, patch) =>
+              mutateColumn(rowId, colId, (c) => ({
+                ...c,
+                components: c.components.map((x) =>
+                  x.id === compId ? { ...x, props: { ...x.props, ...patch } } : x,
+                ),
+              }))
+            }
+            onMoveComponent={(rowId, colId, compId, dir) =>
+              mutateColumn(rowId, colId, (c) => {
+                const idx = c.components.findIndex((x) => x.id === compId);
+                const to = idx + dir;
+                if (idx < 0 || to < 0 || to >= c.components.length) return c;
+                const next = [...c.components];
+                [next[idx], next[to]] = [next[to], next[idx]];
+                return { ...c, components: next };
+              })
+            }
+            onDeleteComponent={(rowId, colId, compId) => {
+              mutateColumn(rowId, colId, (c) => ({
+                ...c,
+                components: c.components.filter((x) => x.id !== compId),
+              }));
+              setSelection({ kind: "column", rowId, colId });
+            }}
+          />
+        )}
       </div>
     </div>
   );
